@@ -11,7 +11,7 @@ import {convertToBackendAmount} from '@libs/CurrencyUtils';
 import DistanceRequestUtils from '@libs/DistanceRequestUtils';
 import {shouldUseTransactionDraft} from '@libs/IOUUtils';
 import Navigation from '@libs/Navigation/Navigation';
-import {getDistanceRateCustomUnitRate, isTaxTrackingEnabled} from '@libs/PolicyUtils';
+import {getDistanceRateCustomUnit, getDistanceRateCustomUnitRate, isTaxTrackingEnabled} from '@libs/PolicyUtils';
 import {isReportInGroupPolicy} from '@libs/ReportUtils';
 import {calculateTaxAmount, getCurrency, getDistanceInMeters, getRateID, getTaxValue, isDistanceRequest as isDistanceRequestTransactionUtils} from '@libs/TransactionUtils';
 import CONST from '@src/CONST';
@@ -52,10 +52,11 @@ function IOURequestStepDistanceRate({
     const shouldShowTax = isTaxTrackingEnabled(isPolicyExpenseChat, policy, isDistanceRequest);
     const isEditing = action === CONST.IOU.ACTION.EDIT;
 
-    const currentRateID = getRateID(transaction);
+    const currentUnitID = getDistanceRateCustomUnit(policy)?.customUnitID;
+    const currentUnitRateID = getRateID(transaction);
     const transactionCurrency = getCurrency(transaction);
 
-    const rates = DistanceRequestUtils.getMileageRates(policy, false, currentRateID);
+    const rates = DistanceRequestUtils.getMileageRates(policy, false, currentUnitRateID);
 
     const navigateBack = () => {
         Navigation.goBack(backTo);
@@ -65,7 +66,7 @@ function IOURequestStepDistanceRate({
         .sort((rateA, rateB) => (rateA?.rate ?? 0) - (rateB?.rate ?? 0))
         .map((rate) => {
             const unit = transaction?.comment?.customUnit?.customUnitRateID === rate.customUnitRateID ? DistanceRequestUtils.getDistanceUnit(transaction, rate) : rate.unit;
-            const isSelected = currentRateID ? currentRateID === rate.customUnitRateID : rate.name === CONST.CUSTOM_UNITS.DEFAULT_RATE;
+            const isSelected = currentUnitRateID ? currentUnitRateID === rate.customUnitRateID : rate.name === CONST.CUSTOM_UNITS.DEFAULT_RATE;
             const rateForDisplay = DistanceRequestUtils.getRateForDisplay(unit, rate.rate, isSelected ? transactionCurrency : rate.currency, translate, toLocaleDigit);
             return {
                 text: rate.name ?? rateForDisplay,
@@ -93,13 +94,23 @@ function IOURequestStepDistanceRate({
             setMoneyRequestTaxRate(transactionID, taxRateExternalID ?? null);
         }
 
-        if (currentRateID !== customUnitRateID) {
-            setMoneyRequestDistanceRate(transactionID, customUnitRateID, policy, shouldUseTransactionDraft(action));
+        // eslint-disable-next-line no-console
+        console.log("TEST-MMD selectDistanceRate()", {
+            currentPolicy: policy,
+            currentUnitID,
+            currentUnitRateID,
+            customUnitRateID,
+        });
+
+        // if (currentRateID !== customUnitRateID) {
+        if (currentUnitID) {
+            setMoneyRequestDistanceRate(transactionID, currentUnitID, customUnitRateID, policy, shouldUseTransactionDraft(action));
 
             if (isEditing && transaction?.transactionID) {
-                updateMoneyRequestDistanceRate(transaction.transactionID, reportID, customUnitRateID, policy, policyTags, policyCategories, taxAmount, taxRateExternalID);
+                updateMoneyRequestDistanceRate(transaction.transactionID, reportID, currentUnitID, customUnitRateID, policy, policyTags, policyCategories, taxAmount, taxRateExternalID);
             }
         }
+        // }
 
         navigateBack();
     }

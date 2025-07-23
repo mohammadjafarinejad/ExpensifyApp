@@ -569,6 +569,9 @@ type AdditionalTransactionChanges = {
     /** Collection of modified attendees */
     attendees?: Attendee[];
 
+    /** The ID of the custom unit */
+    customUnitID?: string;
+
     /** The ID of the distance rate */
     customUnitRateID?: string;
 

@@ -1244,7 +1244,7 @@ function addSubrate(transaction: OnyxEntry<OnyxTypes.Transaction>, currentIndex:
  * Set the distance rate of a transaction.
  * Used when creating a new transaction or moving an existing one from Self DM
  */
-function setMoneyRequestDistanceRate(transactionID: string, customUnitRateID: string, policy: OnyxEntry<OnyxTypes.Policy>, isDraft: boolean) {
+function setMoneyRequestDistanceRate(transactionID: string, customUnitID: string, customUnitRateID: string, policy: OnyxEntry<OnyxTypes.Policy>, isDraft: boolean) {
     if (policy) {
         Onyx.merge(ONYXKEYS.NVP_LAST_SELECTED_DISTANCE_RATES, {[policy.id]: customUnitRateID});
     }
@@ -1258,6 +1258,7 @@ function setMoneyRequestDistanceRate(transactionID: string, customUnitRateID: st
     Onyx.merge(`${isDraft ? ONYXKEYS.COLLECTION.TRANSACTION_DRAFT : ONYXKEYS.COLLECTION.TRANSACTION}${transactionID}`, {
         comment: {
             customUnit: {
+                customUnitID,
                 customUnitRateID,
                 ...(!!policy && {defaultP2PRate: null}),
                 ...(distanceRate && {distanceUnit: distanceRate.unit}),
@@ -4821,7 +4822,8 @@ function updateMoneyRequestDescription(
 function updateMoneyRequestDistanceRate(
     transactionID: string,
     transactionThreadReportID: string,
-    rateID: string,
+    customUnitID: string,
+    customUnitRateID: string,
     policy: OnyxEntry<OnyxTypes.Policy>,
     policyTagList: OnyxEntry<OnyxTypes.PolicyTagLists>,
     policyCategories: OnyxEntry<OnyxTypes.PolicyCategories>,
@@ -4829,7 +4831,8 @@ function updateMoneyRequestDistanceRate(
     updatedTaxCode?: string,
 ) {
     const transactionChanges: TransactionChanges = {
-        customUnitRateID: rateID,
+        customUnitID,
+        customUnitRateID,
         ...(typeof updatedTaxAmount === 'number' ? {taxAmount: updatedTaxAmount} : {}),
         ...(updatedTaxCode ? {taxCode: updatedTaxCode} : {}),
     };
@@ -4839,7 +4842,7 @@ function updateMoneyRequestDistanceRate(
     const transaction = allTransactions?.[`${ONYXKEYS.COLLECTION.TRANSACTION}${transactionID}`];
     if (transaction) {
         const existingDistanceUnit = transaction?.comment?.customUnit?.distanceUnit;
-        const newDistanceUnit = DistanceRequestUtils.getRateByCustomUnitRateID({customUnitRateID: rateID, policy})?.unit;
+        const newDistanceUnit = DistanceRequestUtils.getRateByCustomUnitRateID({customUnitRateID, policy})?.unit;
 
         // If the distanceUnit is set and the rate is changed to one that has a different unit, mark the merchant as modified to make the distance field pending
         if (existingDistanceUnit && newDistanceUnit && newDistanceUnit !== existingDistanceUnit) {
@@ -4856,7 +4859,10 @@ function updateMoneyRequestDistanceRate(
     const {params, onyxData} = data;
     // `taxAmount` & `taxCode` only needs to be updated in the optimistic data, so we need to remove them from the params
     const {taxAmount, taxCode, ...paramsWithoutTaxUpdated} = params;
-    API.write(WRITE_COMMANDS.UPDATE_MONEY_REQUEST_DISTANCE_RATE, paramsWithoutTaxUpdated, onyxData);
+
+    // eslint-disable-next-line no-console
+    console.log("TEST-MMD updateMoneyRequestDistanceRate()", {customUnitID, customUnitRateID, data});
+    API.write(WRITE_COMMANDS.UPDATE_MONEY_REQUEST_DISTANCE_RATE, {...paramsWithoutTaxUpdated, customUnitID}, onyxData);
 }
 
 const getConvertTrackedExpenseInformation = (

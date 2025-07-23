@@ -682,6 +682,7 @@ type TransactionDetails = {
     merchant: string;
     waypoints?: WaypointCollection | string;
     customUnitRateID?: string;
+    customUnitID?: string;
     comment: string;
     category: string;
     billable: boolean;

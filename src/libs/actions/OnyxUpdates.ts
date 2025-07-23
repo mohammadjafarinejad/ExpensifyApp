@@ -29,6 +29,8 @@ let airshipEventsPromise = Promise.resolve();
 function applyHTTPSOnyxUpdates(request: Request, response: Response) {
     Performance.markStart(CONST.TIMING.APPLY_HTTPS_UPDATES);
     console.debug('[OnyxUpdateManager] Applying https update');
+    // eslint-disable-next-line no-console
+    console.log("TEST-MMD applyHTTPSOnyxUpdates()", request.command, {request, response});
     // For most requests we can immediately update Onyx. For write requests we queue the updates and apply them after the sequential queue has flushed to prevent a replay effect in
     // the UI. See https://github.com/Expensify/App/issues/12775 for more info.
     const updateHandler: (updates: OnyxUpdate[]) => Promise<unknown> = request?.data?.apiRequestType === CONST.API_REQUEST_TYPE.WRITE ? queueOnyxUpdates : Onyx.update;
@@ -74,6 +76,8 @@ function applyPusherOnyxUpdates(updates: OnyxUpdateEvent[]) {
 
     pusherEventsPromise = pusherEventsPromise.then(() => {
         console.debug('[OnyxUpdateManager] Applying pusher update');
+        // eslint-disable-next-line no-console
+        console.log("TEST-MMD applyHTTPSOnyxUpdates()", updates);
     });
 
     pusherEventsPromise = updates

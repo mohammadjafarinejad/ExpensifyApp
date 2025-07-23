@@ -4862,7 +4862,7 @@ function updateMoneyRequestDistanceRate(
 
     // eslint-disable-next-line no-console
     console.log("TEST-MMD updateMoneyRequestDistanceRate()", {customUnitID, customUnitRateID, data});
-    API.write(WRITE_COMMANDS.UPDATE_MONEY_REQUEST_DISTANCE_RATE, {...paramsWithoutTaxUpdated, customUnitID}, onyxData);
+    API.write(WRITE_COMMANDS.UPDATE_MONEY_REQUEST_DISTANCE_RATE, {...paramsWithoutTaxUpdated}, onyxData);
 }
 
 const getConvertTrackedExpenseInformation = (

@@ -681,8 +681,8 @@ type TransactionDetails = {
     currency: string;
     merchant: string;
     waypoints?: WaypointCollection | string;
-    customUnitRateID?: string;
     customUnitID?: string;
+    customUnitRateID?: string;
     comment: string;
     category: string;
     billable: boolean;
@@ -3977,6 +3977,7 @@ function getTransactionDetails(
         comment: getDescription(transaction),
         merchant: getMerchant(transaction, policy),
         waypoints: getWaypoints(transaction),
+        customUnitID: transaction?.comment?.customUnit?.customUnitID,
         customUnitRateID: getRateID(transaction),
         category: getCategory(transaction),
         billable: getBillable(transaction),

@@ -245,6 +245,8 @@ function computeReportPart(part: FormulaPart, context: FormulaContext): string {
             return formatType(report.type);
         case 'startdate':
             return formatDate(getOldestTransactionDate(report.reportID), format);
+        case 'enddate':
+            return formatDate(getNewestTransactionDate(report.reportID), format);
         case 'total':
             return formatAmount(report.total, getCurrencySymbol(report.currency ?? '') ?? report.currency);
         case 'currency':
@@ -441,6 +443,38 @@ function getOldestReportActionDate(reportID: string): string | undefined {
     });
 
     return oldestDate;
+}
+
+/**
+ * Get the date of the newest transaction for a given report
+ */
+function getNewestTransactionDate(reportID: string): string | undefined {
+    if (!reportID) {
+        return undefined;
+    }
+
+    const transactions = getReportTransactions(reportID);
+    if (!transactions || transactions.length === 0) {
+        return undefined;
+    }
+
+    let newestDate: string | undefined;
+
+    transactions.forEach((transaction) => {
+        const created = getCreated(transaction);
+        if (!created) {
+            return;
+        }
+        if (newestDate && created <= newestDate) {
+            return;
+        }
+        if (isPartialTransaction(transaction)) {
+            return;
+        }
+        newestDate = created;
+    });
+
+    return newestDate;
 }
 
 /**

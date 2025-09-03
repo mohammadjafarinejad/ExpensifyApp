@@ -1,5 +1,5 @@
 import {findFocusedRoute} from '@react-navigation/native';
-import {format} from 'date-fns';
+// import {format} from 'date-fns';
 import {Str} from 'expensify-common';
 import {deepEqual} from 'fast-equals';
 import lodashEscape from 'lodash/escape';
@@ -88,6 +88,7 @@ import {getEnvironment, getEnvironmentURL} from './Environment/Environment';
 import type EnvironmentType from './Environment/getEnvironment/types';
 import {getMicroSecondOnyxErrorWithTranslationKey, isReceiptError} from './ErrorUtils';
 import getAttachmentDetails from './fileDownload/getAttachmentDetails';
+import {compute} from './Formula';
 import {isReportMessageAttachment} from './isReportMessageAttachment';
 import localeCompareLibs from './LocaleCompare';
 import {formatPhoneNumber} from './LocalePhoneNumber';
@@ -6042,36 +6043,13 @@ function buildOptimisticIOUReport(
     };
 }
 
-function getHumanReadableStatus(statusNum: number): string {
-    const status = Object.keys(CONST.REPORT.STATUS_NUM).find((key) => CONST.REPORT.STATUS_NUM[key as keyof typeof CONST.REPORT.STATUS_NUM] === statusNum);
-    return status ? `${status.charAt(0)}${status.slice(1).toLowerCase()}` : '';
-}
-
 /**
  * Populates the report field formula with the values from the report and policy.
- * Currently, this only supports optimistic expense reports.
- * Each formula field is either replaced with a value, or removed.
- * If after all replacements the formula is empty, the original formula is returned.
- * See {@link https://help.expensify.com/articles/expensify-classic/insights-and-custom-reporting/Custom-Templates}
  */
 function populateOptimisticReportFormula(formula: string, report: OptimisticExpenseReport, policy: OnyxEntry<Policy>): string {
-    const createdDate = report.lastVisibleActionCreated ? new Date(report.lastVisibleActionCreated) : undefined;
-    const result = formula
-        // We don't translate because the server response is always in English
-        .replaceAll(/\{report:type\}/gi, 'Expense Report')
-        .replaceAll(/\{report:startdate\}/gi, createdDate ? format(createdDate, CONST.DATE.FNS_FORMAT_STRING) : '')
-        .replaceAll(/\{report:total\}/gi, report.total !== undefined ? convertToDisplayString(Math.abs(report.total), report.currency).toString() : '')
-        .replaceAll(/\{report:currency\}/gi, report.currency ?? '')
-        .replaceAll(/\{report:policyname\}/gi, policy?.name ?? '')
-        .replaceAll(/\{report:workspacename\}/gi, policy?.name ?? '')
-        .replaceAll(/\{report:created\}/gi, createdDate ? format(createdDate, CONST.DATE.FNS_DATE_TIME_FORMAT_STRING) : '')
-        .replaceAll(/\{report:created:yyyy-MM-dd\}/gi, createdDate ? format(createdDate, CONST.DATE.FNS_FORMAT_STRING) : '')
-        .replaceAll(/\{report:status\}/gi, report.statusNum !== undefined ? getHumanReadableStatus(report.statusNum) : '')
-        .replaceAll(/\{user:email\}/gi, currentUserEmail ?? '')
-        .replaceAll(/\{user:email\|frontPart\}/gi, (currentUserEmail ? currentUserEmail.split('@').at(0) : '') ?? '')
-        .replaceAll(/\{report:(.+)\}/gi, '');
-
-    return result.trim().length ? result : formula;
+    const context = {report, policy};
+    const result = compute(formula, context);
+    return result;
 }
 
 /** Builds an optimistic invoice report with a randomly generated reportID */

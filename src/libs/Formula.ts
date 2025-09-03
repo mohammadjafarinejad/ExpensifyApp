@@ -4,6 +4,7 @@ import CONST from '@src/CONST';
 import type {Policy, Report, Transaction} from '@src/types/onyx';
 import {getCurrencySymbol} from './CurrencyUtils';
 import {getAllReportActions} from './ReportActionsUtils';
+// eslint-disable-next-line import/no-cycle
 import {getReportTransactions} from './ReportUtils';
 import {getCreated, isPartialTransaction} from './TransactionUtils';
 

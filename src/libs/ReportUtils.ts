@@ -1,5 +1,4 @@
 import {findFocusedRoute} from '@react-navigation/native';
-// import {format} from 'date-fns';
 import {Str} from 'expensify-common';
 import {deepEqual} from 'fast-equals';
 import lodashEscape from 'lodash/escape';
@@ -88,7 +87,8 @@ import {getEnvironment, getEnvironmentURL} from './Environment/Environment';
 import type EnvironmentType from './Environment/getEnvironment/types';
 import {getMicroSecondOnyxErrorWithTranslationKey, isReceiptError} from './ErrorUtils';
 import getAttachmentDetails from './fileDownload/getAttachmentDetails';
-import {compute} from './Formula';
+// eslint-disable-next-line import/no-cycle
+import {compute as computeFormula} from './Formula';
 import {isReportMessageAttachment} from './isReportMessageAttachment';
 import localeCompareLibs from './LocaleCompare';
 import {formatPhoneNumber} from './LocalePhoneNumber';
@@ -6047,9 +6047,14 @@ function buildOptimisticIOUReport(
  * Populates the report field formula with the values from the report and policy.
  */
 function populateOptimisticReportFormula(formula: string, report: OptimisticExpenseReport, policy: OnyxEntry<Policy>): string {
-    const context = {report, policy};
-    const result = compute(formula, context);
-    return result;
+    try {
+        const context = {report, policy};
+        return computeFormula(formula, context);
+    } catch (error) {
+        Log.warn('Failed to process optimistic report names', {error});
+        // Fallback on error
+        return formula;
+    }
 }
 
 /** Builds an optimistic invoice report with a randomly generated reportID */

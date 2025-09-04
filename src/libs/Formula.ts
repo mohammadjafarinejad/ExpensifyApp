@@ -5,7 +5,7 @@ import type {Policy, Report, Transaction} from '@src/types/onyx';
 import {getCurrencySymbol} from './CurrencyUtils';
 import {getAllReportActions} from './ReportActionsUtils';
 // eslint-disable-next-line import/no-cycle
-import {getReportTransactions} from './ReportUtils';
+import {getPersonalDetailsForAccountID, getReportTransactions} from './ReportUtils';
 import {getCreated, isPartialTransaction} from './TransactionUtils';
 
 type FormulaPart = {
@@ -257,8 +257,113 @@ function computeReportPart(part: FormulaPart, context: FormulaContext): string {
             // Backend will always return at least one report action (of type created) and its date is equal to report's creation date
             // We can make it slightly more efficient in the future by ensuring report.created is always present in backend's responses
             return formatDate(getOldestReportActionDate(report.reportID), format);
+        case 'submit':
+            return computeSubmitPart(part, context);
         default:
             return part.definition;
+    }
+}
+
+/**
+ * Compute the value of a submit formula part (e.g., {report:submit:from:firstname})
+ */
+function computeSubmitPart(part: FormulaPart, context: FormulaContext): string {
+    const {report} = context;
+    const [, , target, property] = part.fieldPath;
+
+    if (!target) {
+        return part.definition;
+    }
+
+    let result: string | undefined;
+
+    switch (target.toLowerCase()) {
+        case 'from':
+            result = computeSubmitterInfo(context, property);
+            break;
+        case 'to':
+            result = computeManagerInfo(context, property);
+            break;
+        case 'date': {
+            const format = property;
+            result = formatDate(getReportSubmissionDate(report.reportID), format);
+            break;
+        }
+        default:
+            result = part.definition;
+    }
+
+    return result ?? part.definition;
+}
+
+/**
+ * Compute submitter information
+ */
+function computeSubmitterInfo(context: FormulaContext, property?: string): string | undefined {
+    const {report, policy} = context;
+    const submitterID = report.ownerAccountID;
+    const submitterDetails = getPersonalDetailsForAccountID(submitterID);
+    const submitterEmail = submitterDetails?.login;
+    const submitterFullName = submitterDetails?.displayName;
+
+    if (!property) {
+        // {report:submit:from}
+        return (submitterFullName ?? '') || submitterEmail;
+    }
+
+    switch (property.toLowerCase()) {
+        case 'firstname':
+            return submitterDetails?.firstName;
+        case 'lastname':
+            return submitterDetails?.lastName;
+        case 'fullname':
+            return submitterFullName;
+        case 'email':
+            return submitterEmail;
+        case 'userid':
+            return submitterID?.toString();
+        case 'customfield1':
+        case 'customfield2': {
+            // Get custom field from policy's employeeList
+            if (!submitterEmail || !policy?.employeeList) {
+                return undefined;
+            }
+            const customFieldKey = CONST.CUSTOM_FIELD_KEYS[property.toLowerCase() as keyof typeof CONST.CUSTOM_FIELD_KEYS];
+            return policy.employeeList[submitterEmail]?.[customFieldKey];
+        }
+        default:
+            return undefined;
+    }
+}
+
+/**
+ * Compute user information from account ID
+ */
+// Is the email address of the last person who the report was submitted to.
+function computeManagerInfo(context: FormulaContext, property?: string): string | undefined {
+    const {report} = context;
+    const managerID = report.managerID;
+    const managerDetails = getPersonalDetailsForAccountID(managerID);
+    const managerEmail = managerDetails?.login;
+
+    if (!property) {
+        // {report:submit:to}
+        return managerEmail;
+    }
+
+    switch (property.toLowerCase()) {
+        case 'firstname':
+            return managerDetails?.firstName;
+        case 'lastname':
+            return managerDetails?.lastName;
+        case 'fullname':
+            return managerDetails?.displayName;
+        case 'email':
+            return managerEmail;
+        case 'userid':
+            return managerID?.toString();
+        default:
+            return undefined;
     }
 }
 
@@ -430,6 +535,25 @@ function formatAmount(amount: number | undefined, currency: string | undefined):
     }
 
     return formattedAmount;
+}
+
+/**
+ * Get the submission date for a given report by finding the submit action
+ */
+function getReportSubmissionDate(reportID: string): string | undefined {
+    if (!reportID) {
+        return undefined;
+    }
+
+    const reportActions = getAllReportActions(reportID);
+    if (!reportActions || Object.keys(reportActions).length === 0) {
+        return undefined;
+    }
+
+    // Look for the submit action
+    const submitAction = Object.values(reportActions).find((action) => action?.actionName === CONST.REPORT.ACTIONS.TYPE.SUBMITTED);
+
+    return submitAction?.created;
 }
 
 /**

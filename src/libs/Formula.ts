@@ -2,7 +2,7 @@ import type {OnyxEntry} from 'react-native-onyx';
 import type {ValueOf} from 'type-fest';
 import CONST from '@src/CONST';
 import type {Policy, Report, Transaction} from '@src/types/onyx';
-import {getCurrencySymbol} from './CurrencyUtils';
+import {convertToDisplayString, convertToDisplayStringWithoutCurrency, getCurrencySymbol, isValidCurrencyCode} from './CurrencyUtils';
 import {getAllReportActions} from './ReportActionsUtils';
 // eslint-disable-next-line import/no-cycle
 import {getPersonalDetailsForAccountID, getReportTransactions} from './ReportUtils';
@@ -247,7 +247,7 @@ function computeReportPart(part: FormulaPart, context: FormulaContext): string {
         case 'startdate':
             return formatDate(getOldestTransactionDate(report.reportID, context), format);
         case 'total':
-            return formatAmount(report.total, getCurrencySymbol(report.currency ?? '') ?? report.currency);
+            return formatAmount(report.total, getCurrencySymbol(report.currency ?? '') ?? report.currency, format);
         case 'currency':
             return report.currency ?? '';
         case 'policyname':
@@ -522,19 +522,27 @@ function formatDate(dateString: string | undefined, format = 'yyyy-MM-dd'): stri
 /**
  * Format an amount value
  */
-function formatAmount(amount: number | undefined, currency: string | undefined): string {
+function formatAmount(amount: number | undefined, currency: string | undefined, format?: string): string {
     if (amount === undefined) {
         return '';
     }
 
     const absoluteAmount = Math.abs(amount);
-    const formattedAmount = (absoluteAmount / 100).toFixed(2);
 
-    if (currency) {
-        return `${currency}${formattedAmount}`;
+    if (format === 'nosymbol') {
+        return convertToDisplayStringWithoutCurrency(absoluteAmount, currency);
     }
 
-    return formattedAmount;
+    // Check for specific currency code (e.g., USD, EUR)
+    if (format && isValidCurrencyCode(format)) {
+        return convertToDisplayString(absoluteAmount, format);
+    }
+
+    if (currency) {
+        return convertToDisplayString(absoluteAmount, currency);
+    }
+
+    return convertToDisplayStringWithoutCurrency(absoluteAmount, currency);
 }
 
 /**

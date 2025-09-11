@@ -5,7 +5,7 @@ import type {Policy, Report, Transaction} from '@src/types/onyx';
 import {convertToDisplayString, convertToDisplayStringWithoutCurrency, getCurrencySymbol, isValidCurrencyCode} from './CurrencyUtils';
 import {getAllReportActions} from './ReportActionsUtils';
 // eslint-disable-next-line import/no-cycle
-import {getPersonalDetailsForAccountID, getReportTransactions} from './ReportUtils';
+import {getMoneyRequestSpendBreakdown, getPersonalDetailsForAccountID, getReportTransactions} from './ReportUtils';
 import {getCreated, isPartialTransaction} from './TransactionUtils';
 
 type FormulaPart = {
@@ -250,6 +250,8 @@ function computeReportPart(part: FormulaPart, context: FormulaContext): string {
             return formatDate(getNewestTransactionDate(report.reportID, context), format);
         case 'total':
             return formatAmount(report.total, getCurrencySymbol(report.currency ?? '') ?? report.currency, format);
+        case 'reimbursable':
+            return formatAmount(getMoneyRequestSpendBreakdown(report).reimbursableSpend, getCurrencySymbol(report.currency ?? '') ?? report.currency);
         case 'currency':
             return report.currency ?? '';
         case 'policyname':

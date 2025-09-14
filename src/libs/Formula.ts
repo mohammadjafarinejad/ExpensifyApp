@@ -619,6 +619,22 @@ function formatType(type: string | undefined): string {
     return typeMapping[type.toLowerCase()] || type;
 }
 
+function getAllReportTransactionsWithContext(reportID: string, context?: FormulaContext): Transaction[] {
+    const transactions = [...getReportTransactions(reportID)];
+    const ctxTxn = context?.transaction;
+
+    if (ctxTxn?.transactionID && ctxTxn.reportID === reportID) {
+        const idx = transactions.findIndex((t) => t?.transactionID === ctxTxn.transactionID);
+        if (idx >= 0) {
+            transactions[idx] = ctxTxn;
+        } else {
+            transactions.push(ctxTxn);
+        }
+    }
+
+    return transactions;
+}
+
 /**
  * Get the date of the oldest transaction for a given report
  */
@@ -627,7 +643,7 @@ function getOldestTransactionDate(reportID: string, context?: FormulaContext): s
         return undefined;
     }
 
-    const transactions = getReportTransactions(reportID);
+    const transactions = getAllReportTransactionsWithContext(reportID);
     if (!transactions || transactions.length === 0) {
         return new Date().toISOString();
     }
@@ -662,10 +678,11 @@ function getNewestTransactionDate(reportID: string, context?: FormulaContext): s
         return undefined;
     }
 
-    const transactions = getReportTransactions(reportID);
+    const transactions = getAllReportTransactionsWithContext(reportID);
     if (!transactions || transactions.length === 0) {
         return new Date().toISOString();
     }
+    transactions.push(context?.transaction ?? ({} as Transaction));
 
     let newestDate: string | undefined;
 

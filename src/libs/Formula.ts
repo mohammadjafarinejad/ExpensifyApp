@@ -643,7 +643,7 @@ function getOldestTransactionDate(reportID: string, context?: FormulaContext): s
         return undefined;
     }
 
-    const transactions = getAllReportTransactionsWithContext(reportID);
+    const transactions = getAllReportTransactionsWithContext(reportID, context);
     if (!transactions || transactions.length === 0) {
         return new Date().toISOString();
     }
@@ -678,7 +678,7 @@ function getNewestTransactionDate(reportID: string, context?: FormulaContext): s
         return undefined;
     }
 
-    const transactions = getAllReportTransactionsWithContext(reportID);
+    const transactions = getAllReportTransactionsWithContext(reportID, context);
     if (!transactions || transactions.length === 0) {
         return new Date().toISOString();
     }

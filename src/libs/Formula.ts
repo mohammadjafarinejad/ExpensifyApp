@@ -682,7 +682,6 @@ function getNewestTransactionDate(reportID: string, context?: FormulaContext): s
     if (!transactions || transactions.length === 0) {
         return new Date().toISOString();
     }
-    transactions.push(context?.transaction ?? ({} as Transaction));
 
     let newestDate: string | undefined;
 

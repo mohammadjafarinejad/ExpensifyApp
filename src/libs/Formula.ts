@@ -273,7 +273,7 @@ function computeReportPart(part: FormulaPart, context: FormulaContext): string {
  */
 function computeSubmitPart(part: FormulaPart, context: FormulaContext): string {
     const {report} = context;
-    const [, , target, property] = part.fieldPath;
+    const [, target, property] = part.fieldPath;
 
     if (!target) {
         return part.definition;

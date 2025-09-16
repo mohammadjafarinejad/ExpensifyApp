@@ -1,12 +1,14 @@
 import type {OnyxEntry} from 'react-native-onyx';
 import type {ValueOf} from 'type-fest';
 import CONST from '@src/CONST';
-import type {Policy, Report, Transaction} from '@src/types/onyx';
+import type {Policy, PolicyReportField, Report, Transaction} from '@src/types/onyx';
 import {convertToDisplayString, convertToDisplayStringWithoutCurrency, getCurrencySymbol, isValidCurrencyCode} from './CurrencyUtils';
+import Log from './Log';
 import {getAllReportActions} from './ReportActionsUtils';
 // eslint-disable-next-line import/no-cycle
-import {getMoneyRequestSpendBreakdown, getPersonalDetailsForAccountID, getReportTransactions} from './ReportUtils';
+import {getMoneyRequestSpendBreakdown, getPersonalDetailsForAccountID, getReportFieldKey, getReportFieldsByPolicyID, getReportTransactions} from './ReportUtils';
 import {getCreated, isPartialTransaction} from './TransactionUtils';
+import {generateFieldID} from './WorkspaceReportFieldUtils';
 
 type FormulaPart = {
     /** The original definition from the formula */
@@ -26,6 +28,11 @@ type FormulaContext = {
     report: Report;
     policy: OnyxEntry<Policy>;
     transaction?: Transaction;
+};
+
+type FormulaFieldRecursionContext = {
+    visitedFieldIDs: Set<string>;
+    depth: number;
 };
 
 const FORMULA_PART_TYPES = {
@@ -192,7 +199,7 @@ function parsePart(definition: string): FormulaPart {
 /**
  * Compute the value of a formula given a context
  */
-function compute(formula: string, context: FormulaContext): string {
+function compute(formula: string, context: FormulaContext, recursionContext?: FormulaFieldRecursionContext): string {
     if (!formula || typeof formula !== 'string') {
         return '';
     }
@@ -205,11 +212,11 @@ function compute(formula: string, context: FormulaContext): string {
 
         switch (part.type) {
             case FORMULA_PART_TYPES.REPORT:
-                value = computeReportPart(part, context);
-                value = value === '' ? part.definition : value;
+                value = computeReportPart(part, context, recursionContext);
+                value = value === '' && part.fieldPath.at(0)?.toLowerCase() !== 'title' ? part.definition : value;
                 break;
             case FORMULA_PART_TYPES.FIELD:
-                value = computeFieldPart(part);
+                value = computeFieldPart(part, context, recursionContext);
                 break;
             case FORMULA_PART_TYPES.USER:
                 value = computeUserPart(part);
@@ -233,7 +240,7 @@ function compute(formula: string, context: FormulaContext): string {
 /**
  * Compute the value of a report formula part
  */
-function computeReportPart(part: FormulaPart, context: FormulaContext): string {
+function computeReportPart(part: FormulaPart, context: FormulaContext, recursionContext?: FormulaFieldRecursionContext): string {
     const {report, policy} = context;
     const [field, format] = part.fieldPath;
 
@@ -242,6 +249,11 @@ function computeReportPart(part: FormulaPart, context: FormulaContext): string {
     }
 
     switch (field.toLowerCase()) {
+        case 'title': {
+            const titleFieldID = generateFieldID(field);
+            recursionContext?.visitedFieldIDs.add(titleFieldID);
+            return '';
+        }
         case 'type':
             return formatType(report.type);
         case 'startdate':
@@ -374,9 +386,121 @@ function computeManagerInfo(context: FormulaContext, property?: string): string 
 /**
  * Compute the value of a field formula part
  */
-function computeFieldPart(part: FormulaPart): string {
-    // Field computation will be implemented later
-    return part.definition;
+function computeFieldPart(part: FormulaPart, context: FormulaContext, recursionContext?: FormulaFieldRecursionContext): string {
+    const {report} = context;
+    const [fieldName, format] = part.fieldPath;
+
+    const fieldID = fieldName ? generateFieldID(fieldName) : undefined;
+    const fieldKey = getReportFieldKey(fieldID);
+    // On a newly created report in offline mode, fieldList may not be populated yet
+    const reportFieldList = report.fieldList ?? getReportFieldsByPolicyID(report.policyID);
+    const reportField = reportFieldList[fieldKey];
+    if (!reportField) {
+        Log.hmmm('[Formula] Report field used in formula not found in the report', {reportID: report.reportID, field: fieldName, formula: part.definition});
+        return part.definition;
+    }
+
+    let formulaValue = String(reportField.value ?? reportField.defaultValue ?? '');
+    if (reportField.type === CONST.REPORT_FIELD_TYPES.DATE) {
+        formulaValue = formatDate(formulaValue || new Date().toString(), format);
+    }
+
+    if (reportField.type === CONST.REPORT_FIELD_TYPES.LIST) {
+        // Ensure selected dropdown value exists in available options (We can also check `disabledOptions`)
+        if (Array.isArray(reportField.values) && !reportField.values.includes(formulaValue)) {
+            Log.hmmm('[Formula] Invalid dropdown field value', {reportID: report.reportID, field: fieldName, selectedValue: formulaValue, availableOptions: reportField.values});
+        }
+    }
+
+    if (reportField.type === 'formula') {
+        const computedValue = computeFormulaField(reportField, context, recursionContext);
+        formulaValue = computedValue ?? '';
+    }
+
+    // Get default value from formula definition (fallback)
+    const defaultFallback = getDefaultFromDefinition(part.definition) ?? '';
+    return formulaValue === '' ? defaultFallback : formulaValue;
+}
+
+/**
+ * Extract default value from a field formula definition when the field is not found.
+ * This gets the whole thing inside the {field:}
+ */
+function getDefaultFromDefinition(definition: string | undefined): string | undefined {
+    if (!definition || typeof definition !== 'string') {
+        return undefined;
+    }
+
+    const regex = /^\{(field:.*)\}$/;
+    const matches = definition.match(regex);
+
+    if (matches?.[1]) {
+        return matches[1];
+    }
+
+    return undefined;
+}
+
+/**
+ * Recursively computes and sets the value for a formula field.
+ */
+function computeFormulaField(
+    reportField: PolicyReportField,
+    context: FormulaContext,
+    recursionContext: FormulaFieldRecursionContext = {visitedFieldIDs: new Set(), depth: 0},
+): string | null {
+    const {visitedFieldIDs, depth} = recursionContext;
+
+    if (recursionContext.visitedFieldIDs.size === 0) {
+        recursionContext.visitedFieldIDs.add(reportField.fieldID);
+        const titleFieldID = generateFieldID('title');
+        recursionContext?.visitedFieldIDs.add(titleFieldID);
+    }
+
+    // Check recursion depth limit
+    if (depth >= CONST.FORMULA_MAX_RECURSIVE_DEPTH) {
+        Log.hmmm('Maximum recursive formula depth reached', {
+            reportID: context.report.reportID,
+            fieldID: reportField.fieldID,
+            maxDepth: CONST.FORMULA_MAX_RECURSIVE_DEPTH,
+            formula: reportField.defaultValue,
+            depth,
+        });
+        return reportField.defaultValue || null;
+    }
+
+    // Check for circular references
+    const titleFieldID = generateFieldID(CONST.AUTOMATIC_REPORT_TITLE_NAME);
+    if ((reportField.fieldID && visitedFieldIDs.has(reportField.fieldID)) || visitedFieldIDs.has(titleFieldID)) {
+        Log.hmmm('Circular reference detected in formula field', {
+            reportID: context.report.reportID,
+            fieldID: reportField.fieldID,
+            visitedFields: Array.from(visitedFieldIDs),
+            formula: reportField.defaultValue,
+            depth,
+        });
+        return '';
+    }
+
+    // Base case: not a formula field
+    if (reportField.type !== 'formula' || !reportField.defaultValue) {
+        return reportField.defaultValue || null;
+    }
+
+    if (reportField.fieldID) {
+        visitedFieldIDs.add(reportField.fieldID);
+    }
+
+    // Compute the formula
+    const formula = reportField.defaultValue;
+    const computed = compute(formula, context, {visitedFieldIDs, depth: recursionContext.depth + 1});
+
+    // If computation failed or resulted in the same formula, return default
+    if (!computed || computed === formula) {
+        return reportField.defaultValue || null;
+    }
+
+    return computed;
 }
 
 /**

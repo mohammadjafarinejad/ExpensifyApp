@@ -4782,6 +4782,7 @@ const translations = {
             disableReportFieldsConfirmation: 'Are you sure? Text and date fields will be deleted, and lists will be disabled.',
             importedFromAccountingSoftware: 'The report fields below are imported from your',
             textType: 'Text',
+            formulaType: 'Formula',
             dateType: 'Date',
             dropdownType: 'List',
             textAlternateText: 'Add a field for free text input.',

@@ -1,7 +1,7 @@
 import type {OnyxEntry} from 'react-native-onyx';
 import Onyx from 'react-native-onyx';
 import DateUtils from '@libs/DateUtils';
-import {generateFieldID} from '@libs/WorkspaceReportFieldUtils';
+import {generateUserFieldID} from '@libs/WorkspaceReportFieldUtils';
 import CONST from '@src/CONST';
 import OnyxUpdateManager from '@src/libs/actions/OnyxUpdateManager';
 import * as Policy from '@src/libs/actions/Policy/Policy';
@@ -55,7 +55,7 @@ describe('actions/ReportField', () => {
 
             const policyID = Policy.generatePolicyID();
             const reportFieldName = 'Test Field';
-            const reportFieldID = generateFieldID(reportFieldName);
+            const reportFieldID = generateUserFieldID(reportFieldName);
             const reportFieldKey = ReportUtils.getReportFieldKey(reportFieldID);
             const newReportField: OnyxValueWithOfflineFeedback<PolicyReportField> = {
                 name: reportFieldName,
@@ -105,7 +105,7 @@ describe('actions/ReportField', () => {
 
             const policyID = Policy.generatePolicyID();
             const reportFieldName = 'Test Field 2';
-            const reportFieldID = generateFieldID(reportFieldName);
+            const reportFieldID = generateUserFieldID(reportFieldName);
             const reportFieldKey = ReportUtils.getReportFieldKey(reportFieldID);
             const defaultDate = DateUtils.extractDate(new Date().toString());
             const newReportField: OnyxValueWithOfflineFeedback<PolicyReportField> = {
@@ -159,7 +159,7 @@ describe('actions/ReportField', () => {
 
             const policyID = Policy.generatePolicyID();
             const reportFieldName = 'Test Field 3';
-            const reportFieldID = generateFieldID(reportFieldName);
+            const reportFieldID = generateUserFieldID(reportFieldName);
             const reportFieldKey = ReportUtils.getReportFieldKey(reportFieldID);
             const newReportField: OnyxValueWithOfflineFeedback<PolicyReportField> = {
                 name: reportFieldName,
@@ -207,7 +207,7 @@ describe('actions/ReportField', () => {
         it('Deleted a report field from a workspace', async () => {
             const fakePolicy = createRandomPolicy(0);
             const reportFieldName = 'Test Field';
-            const reportFieldID = generateFieldID(reportFieldName);
+            const reportFieldID = generateUserFieldID(reportFieldName);
             const reportFieldKey = ReportUtils.getReportFieldKey(reportFieldID);
             const fakeReportField: OnyxValueWithOfflineFeedback<PolicyReportField> = {
                 name: reportFieldName,
@@ -254,7 +254,7 @@ describe('actions/ReportField', () => {
             const policyID = Policy.generatePolicyID();
             const fakePolicy = createRandomPolicy(Number(policyID));
             const reportFieldName = 'Test Field';
-            const reportFieldID = generateFieldID(reportFieldName);
+            const reportFieldID = generateUserFieldID(reportFieldName);
             const reportFieldKey = ReportUtils.getReportFieldKey(reportFieldID);
             const fakeReportField: OnyxValueWithOfflineFeedback<PolicyReportField> = {
                 name: reportFieldName,
@@ -308,7 +308,7 @@ describe('actions/ReportField', () => {
             const reportFieldName = 'Test Field';
             const oldInitialValue = 'Old initial value';
             const newInitialValue = 'New initial value';
-            const reportFieldID = generateFieldID(reportFieldName);
+            const reportFieldID = generateUserFieldID(reportFieldName);
             const reportFieldKey = ReportUtils.getReportFieldKey(reportFieldID);
             const reportField: PolicyReportField = {
                 name: reportFieldName,
@@ -359,7 +359,7 @@ describe('actions/ReportField', () => {
             const reportFieldName = 'Test Field';
             const oldInitialValue = 'Old initial value';
             const newInitialValue = 'New initial value';
-            const reportFieldID = generateFieldID(reportFieldName);
+            const reportFieldID = generateUserFieldID(reportFieldName);
             const reportFieldKey = ReportUtils.getReportFieldKey(reportFieldID);
             const reportField: PolicyReportField = {
                 name: reportFieldName,
@@ -416,7 +416,7 @@ describe('actions/ReportField', () => {
             const policyID = Policy.generatePolicyID();
             const reportFieldName = 'Test Field';
             const valueIndexesTpUpdate = [1, 2];
-            const reportFieldID = generateFieldID(reportFieldName);
+            const reportFieldID = generateUserFieldID(reportFieldName);
             const reportFieldKey = ReportUtils.getReportFieldKey(reportFieldID);
             const reportField: PolicyReportField = {
                 name: reportFieldName,
@@ -459,7 +459,7 @@ describe('actions/ReportField', () => {
 
             const policyID = Policy.generatePolicyID();
             const reportFieldName = 'Test Field';
-            const reportFieldID = generateFieldID(reportFieldName);
+            const reportFieldID = generateUserFieldID(reportFieldName);
             const reportFieldKey = ReportUtils.getReportFieldKey(reportFieldID);
             const reportField: PolicyReportField = {
                 name: reportFieldName,
@@ -502,7 +502,7 @@ describe('actions/ReportField', () => {
 
             const policyID = Policy.generatePolicyID();
             const reportFieldName = 'Test Field';
-            const reportFieldID = generateFieldID(reportFieldName);
+            const reportFieldID = generateUserFieldID(reportFieldName);
             const reportFieldKey = ReportUtils.getReportFieldKey(reportFieldID);
             const reportField: PolicyReportField = {
                 name: reportFieldName,

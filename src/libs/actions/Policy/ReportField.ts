@@ -13,6 +13,7 @@ import type {
 } from '@libs/API/parameters';
 import {READ_COMMANDS, WRITE_COMMANDS} from '@libs/API/types';
 import * as ErrorUtils from '@libs/ErrorUtils';
+import {hasFormulaPart} from '@libs/FormulaUtils';
 import Log from '@libs/Log';
 import * as ReportUtils from '@libs/ReportUtils';
 import * as WorkspaceReportFieldUtils from '@libs/WorkspaceReportFieldUtils';
@@ -22,6 +23,7 @@ import type {WorkspaceReportFieldForm} from '@src/types/form/WorkspaceReportFiel
 import INPUT_IDS from '@src/types/form/WorkspaceReportFieldForm';
 import type {Policy, PolicyReportField, Report} from '@src/types/onyx';
 import type {OnyxValueWithOfflineFeedback} from '@src/types/onyx/OnyxCommon';
+import type {PolicyReportFieldType} from '@src/types/onyx/Policy';
 import type {OnyxData} from '@src/types/onyx/Request';
 
 let listValues: string[];
@@ -161,16 +163,23 @@ function deleteReportFieldsListValue(valueIndexes: number[]) {
 
 type CreateReportFieldArguments = Pick<WorkspaceReportFieldForm, 'name' | 'type' | 'initialValue'>;
 
+function computeReportFieldType(type: PolicyReportFieldType, defaultValue: string): PolicyReportFieldType {
+    if (!WorkspaceReportFieldUtils.isStringBasedReportField(type)) {
+        return type;
+    }
+    return hasFormulaPart(defaultValue) ? 'formula' : CONST.REPORT_FIELD_TYPES.TEXT;
+}
+
 /**
  * Creates a new report field.
  */
 function createReportField(policyID: string, {name, type, initialValue}: CreateReportFieldArguments) {
     const previousFieldList = allPolicies?.[`${ONYXKEYS.COLLECTION.POLICY}${policyID}`]?.fieldList ?? {};
-    const fieldID = WorkspaceReportFieldUtils.generateFieldID(name);
+    const fieldID = WorkspaceReportFieldUtils.generateUserFieldID(name);
     const fieldKey = ReportUtils.getReportFieldKey(fieldID);
     const optimisticReportFieldDataForPolicy: Omit<OnyxValueWithOfflineFeedback<PolicyReportField>, 'value'> = {
         name,
-        type,
+        type: computeReportFieldType(type, initialValue),
         target: 'expense',
         defaultValue: initialValue,
         values: listValues,
@@ -327,6 +336,7 @@ function updateReportFieldInitialValue(policyID: string, reportFieldID: string, 
     const updatedReportField: PolicyReportField = {
         ...previousFieldList[fieldKey],
         defaultValue: newInitialValue,
+        type: computeReportFieldType(previousFieldList[fieldKey].type, newInitialValue),
     };
     const onyxData: OnyxData = {
         optimisticData: [
@@ -505,6 +515,7 @@ export {
     deleteReportFieldsListValue,
     createReportField,
     deleteReportFields,
+    computeReportFieldType,
     updateReportFieldInitialValue,
     updateReportFieldListValueEnabled,
     openPolicyReportFieldsPage,

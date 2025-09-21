@@ -14,6 +14,7 @@ import Navigation from '@libs/Navigation/Navigation';
 import type {PlatformStackScreenProps} from '@libs/Navigation/PlatformStackNavigation/types';
 import type {EditRequestNavigatorParamList} from '@libs/Navigation/types';
 import {getReportFieldKey, isInvoiceReport, isPaidGroupPolicyExpenseReport, isReportFieldDisabled, isReportFieldOfTypeTitle} from '@libs/ReportUtils';
+import {isStringBasedReportField} from '@libs/WorkspaceReportFieldUtils';
 import CONST from '@src/CONST';
 import ONYXKEYS from '@src/ONYXKEYS';
 import ROUTES from '@src/ROUTES';
@@ -116,7 +117,7 @@ function EditReportFieldPage({route}: EditReportFieldPageProps) {
                 shouldEnableNewFocusManagement
             />
 
-            {(reportField.type === 'text' || isReportFieldTitle) && (
+            {(isStringBasedReportField(reportField.type) || isReportFieldTitle) && (
                 <EditReportFieldText
                     fieldName={Str.UCFirst(reportField.name)}
                     fieldKey={fieldKey}

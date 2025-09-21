@@ -13,6 +13,7 @@ import type {
 } from '@libs/API/parameters';
 import {READ_COMMANDS, WRITE_COMMANDS} from '@libs/API/types';
 import * as ErrorUtils from '@libs/ErrorUtils';
+import {hasFormulaPart} from '@libs/FormulaUtils';
 import Log from '@libs/Log';
 import * as ReportUtils from '@libs/ReportUtils';
 import * as WorkspaceReportFieldUtils from '@libs/WorkspaceReportFieldUtils';
@@ -22,6 +23,7 @@ import type {WorkspaceReportFieldForm} from '@src/types/form/WorkspaceReportFiel
 import INPUT_IDS from '@src/types/form/WorkspaceReportFieldForm';
 import type {Policy, PolicyReportField, Report} from '@src/types/onyx';
 import type {OnyxValueWithOfflineFeedback} from '@src/types/onyx/OnyxCommon';
+import type {PolicyReportFieldType} from '@src/types/onyx/Policy';
 import type {OnyxData} from '@src/types/onyx/Request';
 
 let allReports: OnyxCollection<Report>;
@@ -175,6 +177,13 @@ function deleteReportFieldsListValue({valueIndexes, listValues, disabledListValu
     });
 }
 
+function computeReportFieldType(type: PolicyReportFieldType, defaultValue: string): PolicyReportFieldType {
+    if (!WorkspaceReportFieldUtils.isStringBasedReportField(type)) {
+        return type;
+    }
+    return hasFormulaPart(defaultValue) ? 'formula' : CONST.REPORT_FIELD_TYPES.TEXT;
+}
+
 /**
  * Creates a new report field.
  */
@@ -184,7 +193,7 @@ function createReportField({name, type, initialValue, listValues, disabledListVa
     const fieldKey = ReportUtils.getReportFieldKey(fieldID);
     const optimisticReportFieldDataForPolicy: Omit<OnyxValueWithOfflineFeedback<PolicyReportField>, 'value'> = {
         name,
-        type,
+        type: computeReportFieldType(type, initialValue),
         target: 'expense',
         defaultValue: initialValue,
         values: listValues,
@@ -517,6 +526,7 @@ export {
     renameReportFieldsListValue,
     setReportFieldsListValueEnabled,
     deleteReportFieldsListValue,
+    computeReportFieldType,
     createReportField,
     deleteReportFields,
     updateReportFieldInitialValue,

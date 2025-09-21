@@ -217,6 +217,7 @@ import navigateFromNotification from './navigateFromNotification';
 import {getAll} from './PersistedRequests';
 import {addMembersToWorkspace, buildAddMembersToWorkspaceOnyxData, buildRoomMembersOnyxData} from './Policy/Member';
 import {createPolicyExpenseChats} from './Policy/Policy';
+import {computeReportFieldType} from './Policy/ReportField';
 import {
     createUpdateCommentMatcher,
     resolveCommentDeletionConflicts,
@@ -2397,6 +2398,8 @@ function updateReportField(report: Report, reportField: PolicyReportField, previ
     const reportViolations = getReportViolations(reportID);
     const fieldViolation = getFieldViolation(reportViolations, reportField);
     const recentlyUsedValues = allRecentlyUsedReportFields?.[fieldKey] ?? [];
+    // eslint-disable-next-line no-param-reassign
+    reportField.type = computeReportFieldType(reportField.type, reportField.defaultValue);
 
     const optimisticChangeFieldAction = buildOptimisticChangeFieldAction(reportField, previousReportField);
     const predictedNextStatus = policy?.reimbursementChoice === CONST.POLICY.REIMBURSEMENT_CHOICES.REIMBURSEMENT_NO ? CONST.REPORT.STATUS_NUM.CLOSED : CONST.REPORT.STATUS_NUM.OPEN;

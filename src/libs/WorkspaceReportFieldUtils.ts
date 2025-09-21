@@ -12,7 +12,8 @@ import {isRequiredFulfilled} from './ValidationUtils';
  * Gets the translation key for the report field type.
  */
 function getReportFieldTypeTranslationKey(reportFieldType: PolicyReportFieldType): TranslationPaths {
-    const typeTranslationKeysStrategy: Record<string, TranslationPaths> = {
+    const typeTranslationKeysStrategy: Record<PolicyReportFieldType, TranslationPaths> = {
+        formula: 'workspace.reportFields.formulaType',
         [CONST.REPORT_FIELD_TYPES.TEXT]: 'workspace.reportFields.textType',
         [CONST.REPORT_FIELD_TYPES.DATE]: 'workspace.reportFields.dateType',
         [CONST.REPORT_FIELD_TYPES.LIST]: 'workspace.reportFields.dropdownType',
@@ -25,7 +26,8 @@ function getReportFieldTypeTranslationKey(reportFieldType: PolicyReportFieldType
  * Gets the translation key for the alternative text for the report field.
  */
 function getReportFieldAlternativeTextTranslationKey(reportFieldType: PolicyReportFieldType): TranslationPaths {
-    const typeTranslationKeysStrategy: Record<string, TranslationPaths> = {
+    const typeTranslationKeysStrategy: Record<PolicyReportFieldType, TranslationPaths> = {
+        formula: 'workspace.reportFields.textAlternateText',
         [CONST.REPORT_FIELD_TYPES.TEXT]: 'workspace.reportFields.textAlternateText',
         [CONST.REPORT_FIELD_TYPES.DATE]: 'workspace.reportFields.dateAlternateText',
         [CONST.REPORT_FIELD_TYPES.LIST]: 'workspace.reportFields.dropdownAlternateText',
@@ -56,11 +58,28 @@ function validateReportFieldListValueName(
 
     return errors;
 }
+
 /**
  * Generates a field ID based on the field name.
+ * Generates field ID from field name, including automatic/system field names.
+ * Use this when retrieving field IDs from existing field names.
  */
 function generateFieldID(name: string) {
-    return `field_id_${name.replace(CONST.REGEX.ANY_SPACE, '_').toUpperCase()}`;
+    if (name.toLowerCase() === CONST.AUTOMATIC_REPORT_TITLE_NAME) {
+        return CONST.REPORT_FIELD_TITLE_FIELD_ID;
+    }
+    return generateUserFieldID(name);
+}
+
+/**
+ * Generates field ID for user fields (always adds "field_id_" prefix).
+ * Use this when creating new field instances to ensure user-generated fields don't intersect with automatic ones.
+ */
+function generateUserFieldID(name: string) {
+    if (!name) {
+        return '';
+    }
+    return `${CONST.REPORT_FIELD_ID_PREFIX}${name.replace(CONST.REGEX.ANY_SPACE, '_').toUpperCase()}`;
 }
 
 /**
@@ -82,4 +101,16 @@ function getReportFieldInitialValue(reportField: PolicyReportField | null): stri
     return reportField.value ?? reportField.defaultValue;
 }
 
-export {getReportFieldTypeTranslationKey, getReportFieldAlternativeTextTranslationKey, validateReportFieldListValueName, generateFieldID, getReportFieldInitialValue};
+function isStringBasedReportField(type?: PolicyReportFieldType) {
+    return type === CONST.REPORT_FIELD_TYPES.TEXT || type === 'formula';
+}
+
+export {
+    getReportFieldTypeTranslationKey,
+    getReportFieldAlternativeTextTranslationKey,
+    validateReportFieldListValueName,
+    generateFieldID,
+    generateUserFieldID,
+    getReportFieldInitialValue,
+    isStringBasedReportField,
+};

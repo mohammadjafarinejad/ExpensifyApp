@@ -180,7 +180,7 @@ function deleteReportFieldsListValue({valueIndexes, listValues, disabledListValu
  */
 function createReportField({name, type, initialValue, listValues, disabledListValues, policyID}: CreateReportFieldParams) {
     const previousFieldList = allPolicies?.[`${ONYXKEYS.COLLECTION.POLICY}${policyID}`]?.fieldList ?? {};
-    const fieldID = WorkspaceReportFieldUtils.generateFieldID(name);
+    const fieldID = WorkspaceReportFieldUtils.generateUserFieldID(name);
     const fieldKey = ReportUtils.getReportFieldKey(fieldID);
     const optimisticReportFieldDataForPolicy: Omit<OnyxValueWithOfflineFeedback<PolicyReportField>, 'value'> = {
         name,

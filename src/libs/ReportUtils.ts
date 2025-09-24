@@ -3983,6 +3983,11 @@ function getAvailableReportFields(report: OnyxEntry<Report>, policyReportFields:
     return fields.filter(Boolean) as PolicyReportField[];
 }
 
+function getReportFieldList(reportID: string | undefined) {
+    const onyxReport = allReports?.[`${ONYXKEYS.COLLECTION.REPORT}${reportID}`];
+    return onyxReport?.fieldList;
+}
+
 /**
  * Get the title for an IOU or expense chat which will be showing the payer and the amount
  */
@@ -11801,6 +11806,7 @@ export {
     getAllPolicyReports,
     getAllWorkspaceReports,
     getAvailableReportFields,
+    getReportFieldList,
     getBankAccountRoute,
     getChatByParticipants,
     getChatRoomSubtitle,

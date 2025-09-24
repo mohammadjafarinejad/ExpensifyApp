@@ -288,12 +288,10 @@ function computeFieldPart(part: FormulaPart, context: FormulaContext): string {
     const fieldID = fieldName ? generateFieldID(fieldName) : undefined;
     const fieldKey = getReportFieldKey(fieldID);
     const onyxReportFieldList = getReportFieldList(report.reportID) ?? {};
-    const onyxReportFieldsByPolicyID = getReportFieldsByPolicyID(report.policyID);
-    const updatedFields = report.fieldList ?? {};
-    // Combine fields: prioritize updatedFields (most recent), then onyxReportFieldList, then onyxReportFieldsByPolicyID
-    const combinedFields = {...onyxReportFieldsByPolicyID, ...onyxReportFieldList, ...updatedFields};
+    const policyFields = getReportFieldsByPolicyID(report.policyID);
 
-    const reportField = combinedFields[fieldKey];
+    const reportFields = {...onyxReportFieldList, ...(report.fieldList ?? {})};
+    const reportField = reportFields[fieldKey] ?? policyFields[fieldKey];
 
     // This can happen when a policy field is deleted but old formulas still reference it
     if (!reportField) {
@@ -303,7 +301,8 @@ function computeFieldPart(part: FormulaPart, context: FormulaContext): string {
 
     let formulaValue = String(reportField.value ?? reportField.defaultValue ?? '');
     if (reportField.type === CONST.REPORT_FIELD_TYPES.DATE) {
-        formulaValue = formatDate(formulaValue || new Date().toString(), format);
+        const date = reportFields[fieldKey]?.value ?? '';
+        formulaValue = formatDate(date || new Date().toString(), format);
     }
 
     if (reportField.type === CONST.REPORT_FIELD_TYPES.LIST) {
@@ -369,10 +368,9 @@ function computeFormulaField(reportField: PolicyReportField, context: FormulaCon
 
     recursionContext.depth += 1;
 
-    // If compute() returned an empty string or the same formula, treat it as a failed computation and return null.
     // In computeFormulaField(), a failed computation falls back to part.definition (the original formula).
     // So if computed === formula, we know the computation didn’t succeed.
-    if (!computed || computed === formula) {
+    if (computed === formula) {
         return null;
     }
 

@@ -1,11 +1,13 @@
 import type {OnyxEntry} from 'react-native-onyx';
 import type {ValueOf} from 'type-fest';
 import CONST from '@src/CONST';
-import type {Policy, Report, Transaction} from '@src/types/onyx';
+import type {Policy, PolicyReportField, Report, Transaction} from '@src/types/onyx';
 import {getCurrencySymbol} from './CurrencyUtils';
+import Log from './Log';
 import {getAllReportActions} from './ReportActionsUtils';
-import {getReportTransactions} from './ReportUtils';
+import {getReportFieldKey, getReportFieldList, getReportFieldsByPolicyID, getReportTransactions} from './ReportUtils';
 import {getCreated, isPartialTransaction} from './TransactionUtils';
+import {generateFieldID} from './WorkspaceReportFieldUtils';
 
 type FormulaPart = {
     /** The original definition from the formula */
@@ -25,6 +27,10 @@ type FormulaContext = {
     report: Report;
     policy: OnyxEntry<Policy>;
     transaction?: Transaction;
+    recursionContext?: {
+        visitedFieldIDs: Set<string>;
+        depth: number;
+    };
 };
 
 const FORMULA_PART_TYPES = {
@@ -204,9 +210,9 @@ function compute(formula: string, context: FormulaContext): string {
 
         switch (part.type) {
             case FORMULA_PART_TYPES.REPORT:
-{
-                value = computeReportPart(part, context);
-const [field] = part.fieldPath;
+                {
+                    value = computeReportPart(part, context);
+                    const [field] = part.fieldPath;
 
                     // For most fields, if the computed value is empty, we fallback to the original formula definition.
                     // However, for the 'title' field, we intentionally do NOT fallback, so that when the user enters 'title' in the default title field,
@@ -214,12 +220,12 @@ const [field] = part.fieldPath;
                     if (field.toLowerCase() === 'title') {
                         value = '';
                     } else {
-                value = value === '' ? part.definition : value;
-}
+                        value = value === '' ? part.definition : value;
+                    }
                 }
                 break;
             case FORMULA_PART_TYPES.FIELD:
-                value = computeFieldPart(part);
+                value = computeFieldPart(part, context);
                 break;
             case FORMULA_PART_TYPES.USER:
                 value = computeUserPart(part);
@@ -275,9 +281,102 @@ function computeReportPart(part: FormulaPart, context: FormulaContext): string {
 /**
  * Compute the value of a field formula part
  */
-function computeFieldPart(part: FormulaPart): string {
-    // Field computation will be implemented later
-    return part.definition;
+function computeFieldPart(part: FormulaPart, context: FormulaContext): string {
+    const {report} = context;
+    const [fieldName, format] = part.fieldPath;
+
+    const fieldID = fieldName ? generateFieldID(fieldName) : undefined;
+    const fieldKey = getReportFieldKey(fieldID);
+    const onyxReportFieldList = getReportFieldList(report.reportID) ?? {};
+    const onyxReportFieldsByPolicyID = getReportFieldsByPolicyID(report.policyID);
+    const updatedFields = report.fieldList ?? {};
+    // Combine fields: prioritize updatedFields (most recent), then onyxReportFieldList, then onyxReportFieldsByPolicyID
+    const combinedFields = {...onyxReportFieldsByPolicyID, ...onyxReportFieldList, ...updatedFields};
+
+    const reportField = combinedFields[fieldKey];
+
+    // This can happen when a policy field is deleted but old formulas still reference it
+    if (!reportField) {
+        Log.hmmm('[Formula] Report field used in formula not found in the report', {reportID: report.reportID, field: fieldName, formula: part.definition});
+        return part.definition;
+    }
+
+    let formulaValue = String(reportField.value ?? reportField.defaultValue ?? '');
+    if (reportField.type === CONST.REPORT_FIELD_TYPES.DATE) {
+        formulaValue = formatDate(formulaValue || new Date().toString(), format);
+    }
+
+    if (reportField.type === CONST.REPORT_FIELD_TYPES.LIST) {
+        // Ensure selected dropdown value exists in available options (We can also check `disabledOptions`)
+        if (Array.isArray(reportField.values) && !reportField.values.includes(formulaValue)) {
+            Log.hmmm('[Formula] Invalid dropdown field value', {reportID: report.reportID, field: fieldName, selectedValue: formulaValue, availableOptions: reportField.values});
+        }
+    }
+
+    if (reportField.type === 'formula') {
+        const computedValue = computeFormulaField(reportField, context);
+        // If the computed value is null, it means we hit a recursion limit or circular reference
+        // In that case, we should return the original formula definition as fallback
+        formulaValue = computedValue ?? '';
+    }
+
+    return formulaValue === '' ? part.definition : formulaValue;
+}
+
+/**
+ * Recursively computes and sets the value for a formula field.
+ */
+function computeFormulaField(reportField: PolicyReportField, context: FormulaContext): string | null {
+    if (!context.recursionContext) {
+        context.recursionContext = {
+            visitedFieldIDs: new Set(),
+            depth: 0,
+        };
+    }
+
+    const {recursionContext} = context;
+
+    // Check recursion depth limit
+    if (recursionContext.depth >= CONST.FORMULA_MAX_RECURSIVE_DEPTH) {
+        Log.hmmm('[Formula] Maximum recursive formula depth reached', {
+            reportID: context.report.reportID,
+            fieldID: reportField.fieldID,
+            maxDepth: CONST.FORMULA_MAX_RECURSIVE_DEPTH,
+            formula: reportField.defaultValue,
+            depth: recursionContext.depth,
+        });
+        return null;
+    }
+
+    // Check for circular references
+    if (recursionContext.visitedFieldIDs.has(reportField.fieldID)) {
+        Log.hmmm('[Formula] Circular reference detected in formula field', {
+            reportID: context.report.reportID,
+            fieldID: reportField.fieldID,
+            visitedFields: Array.from(recursionContext.visitedFieldIDs),
+            formula: reportField.defaultValue,
+            depth: recursionContext.depth,
+        });
+        return null;
+    }
+
+    // Add this field to visitedFieldIDs before compute() so we can detect if it loops back to itself in the formula.
+    recursionContext.visitedFieldIDs.add(reportField.fieldID);
+
+    // Compute the formula
+    const formula = reportField.defaultValue;
+    const computed = compute(formula, context);
+
+    recursionContext.depth += 1;
+
+    // If compute() returned an empty string or the same formula, treat it as a failed computation and return null.
+    // In computeFormulaField(), a failed computation falls back to part.definition (the original formula).
+    // So if computed === formula, we know the computation didn’t succeed.
+    if (!computed || computed === formula) {
+        return null;
+    }
+
+    return computed;
 }
 
 /**

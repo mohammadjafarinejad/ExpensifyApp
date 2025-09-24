@@ -204,8 +204,19 @@ function compute(formula: string, context: FormulaContext): string {
 
         switch (part.type) {
             case FORMULA_PART_TYPES.REPORT:
+{
                 value = computeReportPart(part, context);
+const [field] = part.fieldPath;
+
+                    // For most fields, if the computed value is empty, we fallback to the original formula definition.
+                    // However, for the 'title' field, we intentionally do NOT fallback, so that when the user enters 'title' in the default title field,
+                    // it remains empty to match backend behavior.
+                    if (field.toLowerCase() === 'title') {
+                        value = '';
+                    } else {
                 value = value === '' ? part.definition : value;
+}
+                }
                 break;
             case FORMULA_PART_TYPES.FIELD:
                 value = computeFieldPart(part);

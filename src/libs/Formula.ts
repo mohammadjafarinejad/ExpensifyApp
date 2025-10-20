@@ -44,7 +44,7 @@ const FORMULA_PART_TYPES = {
  * Extract formula parts from a formula string, handling nested braces and escapes
  * Based on OldDot Formula.extract method
  */
-function extract(formula: string, opener = '{', closer = '}'): string[] {
+function extract(formula?: string, opener = '{', closer = '}'): string[] {
     if (!formula || typeof formula !== 'string') {
         return [];
     }
@@ -85,7 +85,7 @@ function extract(formula: string, opener = '{', closer = '}'): string[] {
  * Parse a formula string into an array of formula parts
  * Based on OldDot Formula.parse method
  */
-function parse(formula: string): FormulaPart[] {
+function parse(formula?: string): FormulaPart[] {
     if (!formula || typeof formula !== 'string') {
         return [];
     }
@@ -197,8 +197,11 @@ function parsePart(definition: string): FormulaPart {
 /**
  * Compute the value of a formula given a context
  */
-function compute(formula: string, context: FormulaContext): string {
+function compute(formula?: string, context?: FormulaContext): string {
     if (!formula || typeof formula !== 'string') {
+        return '';
+    }
+    if (!context) {
         return '';
     }
 

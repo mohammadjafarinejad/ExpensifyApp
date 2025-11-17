@@ -1,0 +1,11 @@
+"use strict";
+// Styles to meet Apple Wallet branding guidelines
+// https://developer.apple.com/wallet/add-to-apple-wallet-guidelines/
+Object.defineProperty(exports, "__esModule", { value: true });
+var addToWalletButtonStyles = {
+    width: 125,
+    height: 40,
+    // Without scaling button content is too small
+    transform: [{ scaleX: 1.25 }, { scaleY: 1.25 }],
+};
+exports.default = addToWalletButtonStyles;

@@ -370,6 +370,7 @@ type OptimisticExpenseReport = Pick<
     | 'parentReportActionID'
     | 'participants'
     | 'fieldList'
+    | 'created'
 >;
 
 type OptimisticNewReport = Pick<
@@ -392,6 +393,7 @@ type OptimisticNewReport = Pick<
     | 'pendingFields'
     | 'chatReportID'
     | 'nextStep'
+    | 'created'
 > & {reportName: string};
 
 type BuildOptimisticIOUReportActionParams = {
@@ -772,6 +774,7 @@ type OptimisticIOUReport = Pick<
     | 'lastVisibleActionCreated'
     | 'fieldList'
     | 'parentReportActionID'
+    | 'created'
 >;
 
 type OptimisticChangedApproverReportAction = Pick<
@@ -6516,6 +6519,7 @@ function buildOptimisticIOUReport(
         [payerAccountID]: {notificationPreference: CONST.REPORT.NOTIFICATION_PREFERENCE.HIDDEN},
     };
 
+    const createdDate = DateUtils.getDBTime();
     return {
         type: CONST.REPORT.TYPE.IOU,
         chatReportID,
@@ -6534,9 +6538,10 @@ function buildOptimisticIOUReport(
         // We don't translate reportName because the server response is always in English
         reportName: `${payerEmail} owes ${formattedTotal}`,
         parentReportID: chatReportID,
-        lastVisibleActionCreated: DateUtils.getDBTime(),
+        lastVisibleActionCreated: createdDate,
         fieldList: policy?.fieldList,
         parentReportActionID,
+        created: createdDate,
     };
 }
 
@@ -6591,6 +6596,7 @@ function buildOptimisticInvoiceReport(
     currency: string,
 ): OptimisticExpenseReport {
     const formattedTotal = convertToDisplayString(total, currency);
+    const createdDate = DateUtils.getDBTime();
     const invoiceReport = {
         reportID: generateReportID(),
         chatReportID,
@@ -6610,7 +6616,8 @@ function buildOptimisticInvoiceReport(
             },
         },
         parentReportID: chatReportID,
-        lastVisibleActionCreated: DateUtils.getDBTime(),
+        lastVisibleActionCreated: createdDate,
+        created: createdDate,
     };
 
     if (currentUserAccountID) {
@@ -6692,6 +6699,7 @@ function buildOptimisticExpenseReport(
 
     const {stateNum, statusNum} = getExpenseReportStateAndStatus(policy);
 
+    const createdDate = DateUtils.getDBTime();
     const expenseReport: OptimisticExpenseReport = {
         reportID: optimisticIOUReportID ?? generateReportID(),
         chatReportID,
@@ -6713,8 +6721,9 @@ function buildOptimisticExpenseReport(
             },
         },
         parentReportID: chatReportID,
-        lastVisibleActionCreated: DateUtils.getDBTime(),
+        lastVisibleActionCreated: createdDate,
         parentReportActionID,
+        created: createdDate,
     };
 
     // Get the approver/manager for this report to properly display the optimistic data
@@ -6754,6 +6763,7 @@ function buildOptimisticEmptyReport(reportID: string, accountID: number, parentR
         parentReportActionID,
         chatReportID: parentReport?.reportID,
         managerID: getManagerAccountID(policy, {ownerAccountID: accountID}),
+        created: timeOfCreation,
     };
 
     const optimisticReportName = populateOptimisticReportFormula(titleReportField?.defaultValue ?? CONST.POLICY.DEFAULT_REPORT_NAME_PATTERN, optimisticEmptyReport, policy);

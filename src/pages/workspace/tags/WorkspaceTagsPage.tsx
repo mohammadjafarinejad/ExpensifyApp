@@ -269,10 +269,10 @@ function WorkspaceTagsPage({route}: WorkspaceTagsPageProps) {
             isDisabled: tag.pendingAction === CONST.RED_BRICK_ROAD_PENDING_ACTION.DELETE,
             rightElement: !shouldUseNarrowLayout ? (
                 <>
-                    <View style={StyleUtils.getMinimumWidth(120)}>
+                    <View style={[styles.flex1, styles.pr3]}>
                         <Text
                             numberOfLines={1}
-                            style={[styles.textSupporting, styles.label, styles.textAlignCenter]}
+                            style={[styles.alignSelfStart]}
                         >
                             {tag['GL Code'] ?? ''}
                         </Text>
@@ -317,10 +317,9 @@ function WorkspaceTagsPage({route}: WorkspaceTagsPageProps) {
         updateWorkspaceRequiresTag,
         updateWorkspaceTagEnabled,
         shouldUseNarrowLayout,
-        StyleUtils,
-        styles.label,
-        styles.textAlignCenter,
-        styles.textSupporting,
+        styles.alignSelfStart,
+        styles.flex1,
+        styles.pr3,
     ]);
 
     const filterTag = useCallback((tag: TagListItem, searchInput: string) => {
@@ -379,7 +378,7 @@ function WorkspaceTagsPage({route}: WorkspaceTagsPageProps) {
         if (!shouldUseNarrowLayout) {
             const header = (
                 <View style={[styles.flex1, styles.flexRow, styles.justifyContentBetween, canSelectMultiple && styles.pl3]}>
-                    <View style={[styles.flex1, StyleUtils.getPaddingRight(variables.w52 + variables.w12)]}>
+                    <View style={[styles.flex1]}>
                         <Text style={[styles.textMicroSupporting, styles.alignSelfStart]}>{translate('common.name')}</Text>
                     </View>
                     <View style={[styles.flex1, styles.pr3]}>

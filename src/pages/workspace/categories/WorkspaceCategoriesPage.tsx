@@ -195,10 +195,10 @@ function WorkspaceCategoriesPage({route}: WorkspaceCategoriesPageProps) {
                 errors: value.errors ?? undefined,
                 rightElement: !shouldUseNarrowLayout ? (
                     <>
-                        <View style={StyleUtils.getMinimumWidth(120)}>
+                        <View style={[styles.flex1, styles.pr3]}>
                             <Text
                                 numberOfLines={1}
-                                style={[styles.textSupporting, styles.label, styles.textAlignCenter]}
+                                style={[styles.alignSelfStart]}
                             >
                                 {value['GL Code'] ?? ''}
                             </Text>
@@ -236,7 +236,7 @@ function WorkspaceCategoriesPage({route}: WorkspaceCategoriesPageProps) {
 
             return acc;
         }, []);
-    }, [policyCategories, isOffline, translate, updateWorkspaceCategoryEnabled, policy, shouldUseNarrowLayout, StyleUtils, styles.label, styles.textAlignCenter, styles.textSupporting]);
+    }, [policyCategories, isOffline, shouldUseNarrowLayout, styles.flex1, styles.pr3, styles.alignSelfStart, translate, policy, updateWorkspaceCategoryEnabled]);
 
     const filterCategory = useCallback((categoryOption: PolicyOption, searchInput: string) => {
         const results = tokenizedSearch([categoryOption], searchInput, (option) => [option.text ?? '', option.alternateText ?? '']);
@@ -278,7 +278,7 @@ function WorkspaceCategoriesPage({route}: WorkspaceCategoriesPageProps) {
         if (!shouldUseNarrowLayout) {
             const header = (
                 <View style={[styles.flex1, styles.flexRow, styles.justifyContentBetween, canSelectMultiple && styles.pl3]}>
-                    <View style={[styles.flex1, StyleUtils.getPaddingRight(variables.w52 + variables.w12)]}>
+                    <View style={[styles.flex1]}>
                         <Text style={[styles.textMicroSupporting, styles.alignSelfStart]}>{translate('common.name')}</Text>
                     </View>
                     <View style={[styles.flex1, styles.pr3]}>

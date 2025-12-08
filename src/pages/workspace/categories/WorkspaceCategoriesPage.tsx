@@ -37,6 +37,7 @@ import usePolicyData from '@hooks/usePolicyData';
 import useResponsiveLayout from '@hooks/useResponsiveLayout';
 import useSearchBackPress from '@hooks/useSearchBackPress';
 import useSearchResults from '@hooks/useSearchResults';
+import useStyleUtils from '@hooks/useStyleUtils';
 import useThemeStyles from '@hooks/useThemeStyles';
 import {isConnectionInProgress, isConnectionUnverified} from '@libs/actions/connections';
 import {turnOffMobileSelectionMode} from '@libs/actions/MobileSelectionMode';
@@ -49,6 +50,7 @@ import {isDisablingOrDeletingLastEnabledCategory} from '@libs/OptionsListUtils';
 import {getConnectedIntegration, getCurrentConnectionName, hasAccountingConnections, shouldShowSyncError} from '@libs/PolicyUtils';
 import tokenizedSearch from '@libs/tokenizedSearch';
 import AccessOrNotFoundWrapper from '@pages/workspace/AccessOrNotFoundWrapper';
+import variables from '@styles/variables';
 import {close} from '@userActions/Modal';
 import {clearCategoryErrors, deleteWorkspaceCategories, downloadCategoriesCSV, openPolicyCategoriesPage, setWorkspaceCategoryEnabled} from '@userActions/Policy/Category';
 import CONST from '@src/CONST';
@@ -71,6 +73,7 @@ function WorkspaceCategoriesPage({route}: WorkspaceCategoriesPageProps) {
     // eslint-disable-next-line rulesdir/prefer-shouldUseNarrowLayout-instead-of-isSmallScreenWidth
     const {shouldUseNarrowLayout, isSmallScreenWidth} = useResponsiveLayout();
     const styles = useThemeStyles();
+    const StyleUtils = useStyleUtils();
     const {translate, localeCompare} = useLocalize();
     const [isOfflineModalVisible, setIsOfflineModalVisible] = useState(false);
     const [isDownloadFailureModalVisible, setIsDownloadFailureModalVisible] = useState(false);
@@ -190,7 +193,31 @@ function WorkspaceCategoriesPage({route}: WorkspaceCategoriesPageProps) {
                 isDisabled,
                 pendingAction: value.pendingAction,
                 errors: value.errors ?? undefined,
-                rightElement: (
+                rightElement: !shouldUseNarrowLayout ? (
+                    <>
+                        <View style={StyleUtils.getMinimumWidth(120)}>
+                            <Text
+                                numberOfLines={1}
+                                style={[styles.textSupporting, styles.label, styles.textAlignCenter]}
+                            >
+                                {value['GL Code'] ?? ''}
+                            </Text>
+                        </View>
+                        <Switch
+                            isOn={value.enabled}
+                            disabled={isDisabled}
+                            accessibilityLabel={translate('workspace.categories.enableCategory')}
+                            onToggle={(newValue: boolean) => {
+                                if (isDisablingOrDeletingLastEnabledCategory(policy, policyCategories, [value])) {
+                                    setIsCannotDeleteOrDisableLastCategoryModalVisible(true);
+                                    return;
+                                }
+                                updateWorkspaceCategoryEnabled(newValue, value.name);
+                            }}
+                            showLockIcon={isDisablingOrDeletingLastEnabledCategory(policy, policyCategories, [value])}
+                        />
+                    </>
+                ) : (
                     <Switch
                         isOn={value.enabled}
                         disabled={isDisabled}
@@ -209,7 +236,7 @@ function WorkspaceCategoriesPage({route}: WorkspaceCategoriesPageProps) {
 
             return acc;
         }, []);
-    }, [policyCategories, isOffline, translate, updateWorkspaceCategoryEnabled, policy]);
+    }, [policyCategories, isOffline, translate, updateWorkspaceCategoryEnabled, policy, shouldUseNarrowLayout, StyleUtils, styles.label, styles.textAlignCenter, styles.textSupporting]);
 
     const filterCategory = useCallback((categoryOption: PolicyOption, searchInput: string) => {
         const results = tokenizedSearch([categoryOption], searchInput, (option) => [option.text ?? '', option.alternateText ?? '']);
@@ -247,6 +274,27 @@ function WorkspaceCategoriesPage({route}: WorkspaceCategoriesPageProps) {
         if (filteredCategoryList.length === 0) {
             return null;
         }
+        // Show GL Code column only on wide screens
+        if (!shouldUseNarrowLayout) {
+            const header = (
+                <View style={[styles.flex1, styles.flexRow, styles.justifyContentBetween, canSelectMultiple && styles.pl3]}>
+                    <View style={[styles.flex1, StyleUtils.getPaddingRight(variables.w52 + variables.w12)]}>
+                        <Text style={[styles.textMicroSupporting, styles.alignSelfStart]}>{translate('common.name')}</Text>
+                    </View>
+                    <View style={[styles.flex1, styles.pr3]}>
+                        <Text style={[styles.textMicroSupporting, styles.alignSelfStart]}>{translate('workspace.categories.glCode')}</Text>
+                    </View>
+                    <View style={[StyleUtils.getMinimumWidth(variables.w72), styles.pr2]}>
+                        <Text style={[styles.textMicroSupporting, styles.alignSelfEnd]}>{translate('common.enabled')}</Text>
+                    </View>
+                </View>
+            );
+            if (canSelectMultiple) {
+                return header;
+            }
+            return <View style={[styles.ph9, styles.pv3, styles.pb5]}>{header}</View>;
+        }
+        // Fall back to 2-column layout for narrow screens
         return (
             <CustomListHeader
                 canSelectMultiple={canSelectMultiple}

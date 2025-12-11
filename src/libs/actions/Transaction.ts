@@ -13,17 +13,7 @@ import {buildNextStepNew, buildOptimisticNextStep} from '@libs/NextStepUtils';
 import * as NumberUtils from '@libs/NumberUtils';
 import {rand64} from '@libs/NumberUtils';
 import {hasDependentTags, isPaidGroupPolicy} from '@libs/PolicyUtils';
-import {
-    getAllReportActions,
-    getIOUActionForReportID,
-    getOriginalMessage,
-    getTrackExpenseActionableWhisper,
-    isApprovedAction,
-    isForwardedAction,
-    isModifiedExpenseAction,
-    isSubmittedAction,
-    isUnapprovedAction,
-} from '@libs/ReportActionsUtils';
+import {getAllReportActions, getIOUActionForReportID, getOriginalMessage, getTrackExpenseActionableWhisper, isModifiedExpenseAction} from '@libs/ReportActionsUtils';
 import {
     buildOptimisticCreatedReportAction,
     buildOptimisticDismissedViolationReportAction,
@@ -1232,53 +1222,7 @@ function changeTransactionsReport(
         return;
     }
 
-    // 8. Copy submission/approval actions to the new report
-    const submissionApprovalActionsToCopy: ReportAction[] = [];
-    const oldReportIDs = new Set(transactions.map((t) => t.reportID).filter((id): id is string => !!id && id !== CONST.REPORT.UNREPORTED_REPORT_ID));
-
-    for (const oldReportID of oldReportIDs) {
-        const oldReportActions = getAllReportActions(oldReportID);
-        if (oldReportActions) {
-            Object.values(oldReportActions).forEach((action) => {
-                if (action && (isSubmittedAction(action) || isApprovedAction(action) || isForwardedAction(action) || isUnapprovedAction(action))) {
-                    submissionApprovalActionsToCopy.push(action);
-                }
-            });
-        }
-    }
-
-    if (submissionApprovalActionsToCopy.length > 0 && reportID !== CONST.REPORT.UNREPORTED_REPORT_ID) {
-        const copiedActions: Record<string, ReportAction> = {};
-        submissionApprovalActionsToCopy.forEach((action) => {
-            const newID = rand64();
-            copiedActions[newID] = {
-                ...action,
-                reportActionID: newID,
-                reportID,
-                pendingAction: CONST.RED_BRICK_ROAD_PENDING_ACTION.ADD,
-            }; 
-        });
-
-        optimisticData.push({
-            onyxMethod: Onyx.METHOD.MERGE,
-            key: `${ONYXKEYS.COLLECTION.REPORT_ACTIONS}${reportID}`,
-            value: copiedActions,
-        });
-
-        successData.push({
-            onyxMethod: Onyx.METHOD.MERGE,
-            key: `${ONYXKEYS.COLLECTION.REPORT_ACTIONS}${reportID}`,
-            value: Object.fromEntries(Object.keys(copiedActions).map((id) => [id, {pendingAction: null}])),
-        });
-
-        failureData.push({
-            onyxMethod: Onyx.METHOD.MERGE,
-            key: `${ONYXKEYS.COLLECTION.REPORT_ACTIONS}${reportID}`,
-            value: Object.fromEntries(Object.keys(copiedActions).map((id) => [id, null])),
-        });
-    }
-
-    // 9. Update the report totals
+    // 8. Update the report totals
     for (const [reportIDToUpdate, total] of Object.entries(updatedReportTotals)) {
         optimisticData.push({
             onyxMethod: Onyx.METHOD.MERGE,

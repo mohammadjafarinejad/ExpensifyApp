@@ -6,19 +6,19 @@ import type {TransactionCustomUnit} from '@src/types/onyx/Transaction';
 describe('ReportActionsUtils', () => {
     describe('validateAmount', () => {
         it('should pass the validation when amount is within the max digit and decimal', () => {
-            expect(validateAmount('12345678', 2, 8)).toBe(true);
-            expect(validateAmount('12345678', 0, 8)).toBe(true);
-            expect(validateAmount('12345678.12', 2, 8)).toBe(true);
-            expect(validateAmount('1234567.1', 2, 8)).toBe(true);
-            expect(validateAmount('12345678.123', 3, 8)).toBe(true);
+            expect(validateAmount('1234567890', 2, 10)).toBe(true);
+            expect(validateAmount('1234567890', 0, 10)).toBe(true);
+            expect(validateAmount('1234567890.12', 2, 10)).toBe(true);
+            expect(validateAmount('123456789.1', 2, 10)).toBe(true);
+            expect(validateAmount('1234567890.123', 3, 10)).toBe(true);
             expect(validateAmount('1234.1234', 4, 4)).toBe(true);
         });
 
         it("shouldn't pass the validation when amount is bigger than the max digit and decimal", () => {
-            expect(validateAmount('12345678.123', 2, 8)).toBe(false);
-            expect(validateAmount('12345678.1', 0, 8)).toBe(false);
-            expect(validateAmount('123456789.12', 2, 8)).toBe(false);
-            expect(validateAmount('123456789.1234', 3, 8)).toBe(false);
+            expect(validateAmount('1234567890.123', 2, 10)).toBe(false);
+            expect(validateAmount('1234567890.1', 0, 10)).toBe(false);
+            expect(validateAmount('12345678901.12', 2, 10)).toBe(false);
+            expect(validateAmount('12345678901.1234', 3, 10)).toBe(false);
             expect(validateAmount('1234.12345', 4, 4)).toBe(false);
         });
     });

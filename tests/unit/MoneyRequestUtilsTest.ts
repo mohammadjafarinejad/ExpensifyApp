@@ -12,6 +12,11 @@ describe('ReportActionsUtils', () => {
             expect(validateAmount('123456789.1', 2, 10)).toBe(true);
             expect(validateAmount('1234567890.123', 3, 10)).toBe(true);
             expect(validateAmount('1234.1234', 4, 4)).toBe(true);
+            // Test new 10-digit limit for currencies with decimals
+            expect(validateAmount('9999999999.99', 2, 10)).toBe(true);
+            expect(validateAmount('1234567890', 2, 10)).toBe(true);
+            // Test 12-digit limit for zero-decimal currencies
+            expect(validateAmount('999999999999', 0, 12)).toBe(true);
         });
 
         it("shouldn't pass the validation when amount is bigger than the max digit and decimal", () => {
@@ -20,6 +25,10 @@ describe('ReportActionsUtils', () => {
             expect(validateAmount('12345678901.12', 2, 10)).toBe(false);
             expect(validateAmount('12345678901.1234', 3, 10)).toBe(false);
             expect(validateAmount('1234.12345', 4, 4)).toBe(false);
+            // Test exceeding 10-digit limit for currencies with decimals
+            expect(validateAmount('99999999999.99', 2, 10)).toBe(false);
+            // Test exceeding 12-digit limit for zero-decimal currencies
+            expect(validateAmount('9999999999999', 0, 12)).toBe(false);
         });
     });
 

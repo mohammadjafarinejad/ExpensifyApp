@@ -42,6 +42,17 @@ function getCurrencyUnit(currency: string = CONST.CURRENCY.USD): number {
 }
 
 /**
+ * Get the maximum number of digits allowed before the decimal point for a currency
+ * Based on backend limit of 12 total digits in smallest currency unit
+ *
+ * @param currency - IOU currency
+ */
+function getAmountMaxLength(currency: string = CONST.CURRENCY.USD): number {
+    const decimals = getCurrencyDecimals(currency);
+    return CONST.IOU.AMOUNT_MAX_TOTAL_DIGITS - decimals;
+}
+
+/**
  * Get localized currency symbol for currency(ISO 4217) Code
  */
 function getLocalizedCurrencySymbol(locale: Locale | undefined, currencyCode: string): string | undefined {
@@ -219,6 +230,7 @@ function getCurrencyKeyByCountryCode(currencies?: CurrencyList, countryCode?: st
 export {
     getCurrencyDecimals,
     getCurrencyUnit,
+    getAmountMaxLength,
     getLocalizedCurrencySymbol,
     getCurrencySymbol,
     getCurrencyKeyByCountryCode,

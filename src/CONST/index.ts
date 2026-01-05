@@ -2937,7 +2937,8 @@ const CONST = {
             APPROVE: 'approve',
             TRACK: 'track',
         },
-        AMOUNT_MAX_LENGTH: 10,
+        AMOUNT_MAX_LENGTH: 10, // Default for currencies with decimals (12 - 2)
+        AMOUNT_MAX_TOTAL_DIGITS: 12, // Backend limit in smallest currency unit (cents/đồng/yen)
         DISTANCE_REQUEST_AMOUNT_MAX_LENGTH: 14,
         RECEIPT_STATE: {
             SCAN_READY: 'SCANREADY',

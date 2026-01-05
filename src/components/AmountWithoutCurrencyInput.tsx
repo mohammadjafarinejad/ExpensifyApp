@@ -89,7 +89,7 @@ function AmountWithoutCurrencyInput({
             keyboardType={keyboardType}
             inputMode={inputMode}
             type="mask"
-            mask={shouldAllowNegative ? `[~][9999999999]${separator}[09]` : `[09999999999]${separator}[09]`}
+            mask={shouldAllowNegative ? `[~][9999999999]${separator}[09]` : `[0999999999]${separator}[09]`}
             customNotations={customMask}
             allowedKeys="0123456789.,-"
             validationRegex={'^-?(?!.*[.,].*[.,])\\d{0,10}(?:[.,]\\d{0,2})?$'}

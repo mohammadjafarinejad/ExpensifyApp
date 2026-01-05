@@ -10,7 +10,7 @@ import SettlementButton from '@components/SettlementButton';
 import useLocalize from '@hooks/useLocalize';
 import useResponsiveLayout from '@hooks/useResponsiveLayout';
 import useThemeStyles from '@hooks/useThemeStyles';
-import {convertToDisplayString, convertToFrontendAmountAsInteger, convertToFrontendAmountAsString} from '@libs/CurrencyUtils';
+import {convertToDisplayString, convertToFrontendAmountAsInteger, convertToFrontendAmountAsString, getAmountMaxLength} from '@libs/CurrencyUtils';
 import {canUseTouchScreen as canUseTouchScreenUtil} from '@libs/DeviceCapabilities';
 import Navigation from '@libs/Navigation/Navigation';
 import variables from '@styles/variables';
@@ -241,6 +241,7 @@ function MoneyRequestAmountForm({
                 autoGrowExtraSpace={variables.w80}
                 hideCurrencySymbol={hideCurrencySymbol}
                 currency={currency}
+                maxLength={getAmountMaxLength(currency)}
                 isCurrencyPressable={isCurrencyPressable}
                 onCurrencyButtonPress={onCurrencyButtonPress}
                 onAmountChange={() => {

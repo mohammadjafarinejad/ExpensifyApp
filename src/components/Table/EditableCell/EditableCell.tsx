@@ -2,6 +2,7 @@ import React from 'react';
 import type {ReactNode, RefObject} from 'react';
 import {View} from 'react-native';
 import PressableWithFeedback from '@components/Pressable/PressableWithFeedback';
+import useTheme from '@hooks/useTheme';
 import useThemeStyles from '@hooks/useThemeStyles';
 
 type EditableCellProps = {
@@ -36,6 +37,10 @@ type EditableCellProps = {
  */
 function EditableCell({children, editContent, isEditing, canEdit = true, onStartEditing, anchorRef}: EditableCellProps) {
     const styles = useThemeStyles();
+    const theme = useTheme();
+
+    // Always reserve 1px border space so hover/active state changes don't shift layout
+    const reservedBorder = {borderWidth: 1, borderRadius: styles.border.borderRadius, borderColor: 'transparent'} as const;
 
     if (!canEdit) {
         return children;
@@ -43,7 +48,7 @@ function EditableCell({children, editContent, isEditing, canEdit = true, onStart
 
     // Inline edit mode: replace display content with the edit input
     if (isEditing && editContent) {
-        return <View style={[styles.flex1]}>{editContent}</View>;
+        return <View style={[styles.flex1, reservedBorder, styles.borderColorFocus]}>{editContent}</View>;
     }
 
     // Popover edit mode: keep showing display content with active border
@@ -51,7 +56,7 @@ function EditableCell({children, editContent, isEditing, canEdit = true, onStart
         return (
             <View
                 ref={anchorRef}
-                style={[styles.flex1, styles.border, styles.borderColorFocus]}
+                style={[styles.flex1, reservedBorder, styles.borderColorFocus]}
             >
                 {children}
             </View>
@@ -63,8 +68,8 @@ function EditableCell({children, editContent, isEditing, canEdit = true, onStart
             accessibilityRole="button"
             accessibilityLabel="Edit cell"
             onPress={onStartEditing}
-            style={[styles.flex1]}
-            hoverStyle={[styles.border]}
+            style={[styles.flex1, reservedBorder]}
+            hoverStyle={{borderColor: theme.border}}
         >
             {children}
         </PressableWithFeedback>

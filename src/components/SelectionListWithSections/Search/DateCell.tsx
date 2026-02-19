@@ -19,6 +19,7 @@ function DateCell({date, showTooltip, isLargeScreenWidth, canEdit, onSave}: Date
     const styles = useThemeStyles();
     const {isEditing, anchorRef, isPopoverVisible, popoverPosition, isInverted, startEditing, closePopover} = usePopoverEditState({
         popoverHeight: CONST.POPOVER_DATE_MAX_HEIGHT,
+        anchorEdge: 'left',
     });
 
     const formattedDate = DateUtils.formatWithUTCTimeZone(date, DateUtils.doesDateBelongToAPastYear(date) ? CONST.DATE.MONTH_DAY_YEAR_ABBR_FORMAT : CONST.DATE.MONTH_DAY_ABBR_FORMAT);
@@ -53,6 +54,10 @@ function DateCell({date, showTooltip, isLargeScreenWidth, canEdit, onSave}: Date
                 onClose={closePopover}
                 onSelected={handleDateSelected}
                 anchorPosition={popoverPosition}
+                anchorAlignment={{
+                    horizontal: CONST.MODAL.ANCHOR_ORIGIN_HORIZONTAL.LEFT,
+                    vertical: CONST.MODAL.ANCHOR_ORIGIN_VERTICAL.TOP,
+                }}
                 shouldPositionFromTop={!isInverted}
                 minDate={setYear(new Date(), CONST.CALENDAR_PICKER.MIN_YEAR)}
                 maxDate={setYear(new Date(), CONST.CALENDAR_PICKER.MAX_YEAR)}

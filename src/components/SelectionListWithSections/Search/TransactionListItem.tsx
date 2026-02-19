@@ -1,4 +1,4 @@
-import React, {useContext, useRef} from 'react';
+import React, {useCallback, useContext, useRef} from 'react';
 import type {View} from 'react-native';
 import type {OnyxEntry} from 'react-native-onyx';
 // Use the original useOnyx hook to get the real-time data from Onyx and not from the snapshot
@@ -21,6 +21,14 @@ import useTheme from '@hooks/useTheme';
 import useThemeStyles from '@hooks/useThemeStyles';
 import type {TransactionPreviewData} from '@libs/actions/Search';
 import {handleActionButtonPress as handleActionButtonPressUtil} from '@libs/actions/Search';
+import {
+    editTransactionAmountOnSearch,
+    editTransactionCategoryOnSearch,
+    editTransactionDateOnSearch,
+    editTransactionDescriptionOnSearch,
+    editTransactionMerchantOnSearch,
+    getSearchTransactionEditPermissions,
+} from '@libs/actions/SearchInlineEdit';
 import {syncMissingAttendeesViolation} from '@libs/AttendeeUtils';
 import getNonEmptyStringOnyxID from '@libs/getNonEmptyStringOnyxID';
 import {isInvoiceReport} from '@libs/ReportUtils';
@@ -56,7 +64,7 @@ function TransactionListItem<TItem extends ListItem>({
     const theme = useTheme();
 
     const {isLargeScreenWidth, shouldUseNarrowLayout} = useResponsiveLayout();
-    const {currentSearchHash, currentSearchKey, currentSearchResults} = useSearchContext();
+    const {currentSearchHash, currentSearchKey, currentSearchQueryJSON, currentSearchResults} = useSearchContext();
     const snapshotReport = (currentSearchResults?.data?.[`${ONYXKEYS.COLLECTION.REPORT}${transactionItem.reportID}`] ?? {}) as Report;
 
     const [isActionLoading] = useOnyx(`${ONYXKEYS.COLLECTION.REPORT_METADATA}${transactionItem.reportID}`, {canBeMissing: true, selector: isActionLoadingSelector});
@@ -154,6 +162,50 @@ function TransactionListItem<TItem extends ListItem>({
 
     const {isDelegateAccessRestricted, showDelegateNoAccessModal} = useContext(DelegateNoAccessContext);
 
+    // Inline edit
+    const transactionThreadReportID = transactionItem.reportAction?.childReportID;
+    const transactionID = transactionItem.transactionID ?? '';
+
+    const {canEditDate, canEditMerchant, canEditDescription, canEditCategory, canEditAmount} = getSearchTransactionEditPermissions(transactionID, parentReportAction, currentSearchQueryJSON);
+
+    const handleEditDate = useCallback(
+        (newDate: string) => {
+            editTransactionDateOnSearch(currentSearchHash, transactionID, transactionThreadReportID, newDate);
+        },
+        [currentSearchHash, transactionID, transactionThreadReportID],
+    );
+
+    const handleEditMerchant = useCallback(
+        (newMerchant: string) => {
+            editTransactionMerchantOnSearch(currentSearchHash, transactionID, transactionThreadReportID, newMerchant);
+        },
+        [currentSearchHash, transactionID, transactionThreadReportID],
+    );
+
+    const handleEditDescription = useCallback(
+        (newDescription: string) => {
+            editTransactionDescriptionOnSearch(currentSearchHash, transactionID, transactionThreadReportID, newDescription);
+        },
+        [currentSearchHash, transactionID, transactionThreadReportID],
+    );
+
+    const handleEditCategory = useCallback(
+        (newCategory: string) => {
+            editTransactionCategoryOnSearch(currentSearchHash, transactionID, transactionThreadReportID, newCategory);
+        },
+        [currentSearchHash, transactionID, transactionThreadReportID],
+    );
+
+    const handleEditAmount = useCallback(
+        (newAmount: number) => {
+            if (newAmount <= 0) {
+                return;
+            }
+            editTransactionAmountOnSearch(currentSearchHash, transactionID, transactionThreadReportID, newAmount);
+        },
+        [currentSearchHash, transactionID, transactionThreadReportID],
+    );
+
     const handleActionButtonPress = () => {
         handleActionButtonPressUtil({
             hash: currentSearchHash,
@@ -233,6 +285,12 @@ function TransactionListItem<TItem extends ListItem>({
                             isHover={hovered}
                             customCardNames={customCardNames}
                             reportActions={exportedReportActions}
+                            policyID={policyID}
+                            onEditDate={canEditDate ? handleEditDate : undefined}
+                            onEditMerchant={canEditMerchant ? handleEditMerchant : undefined}
+                            onEditDescription={canEditDescription ? handleEditDescription : undefined}
+                            onEditCategory={canEditCategory ? handleEditCategory : undefined}
+                            onEditAmount={canEditAmount ? handleEditAmount : undefined}
                         />
                     </>
                 )}

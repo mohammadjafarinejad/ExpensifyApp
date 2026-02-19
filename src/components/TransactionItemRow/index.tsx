@@ -145,6 +145,12 @@ type TransactionItemRowProps = {
     onEditDescription?: (newDescription: string) => void;
     onEditCategory?: (newCategory: string) => void;
     onEditAmount?: (newAmount: number) => void;
+
+    /**
+     * Resolved policy ID — overrides the report-derived policyID for DataCells
+     * (needed for self-DM tracking expenses where report has no policyID)
+     */
+    policyID?: string;
 };
 
 function getMerchantName(transactionItem: TransactionWithOptionalSearchFields, translate: (key: TranslationPaths) => string) {
@@ -198,6 +204,7 @@ function TransactionItemRow({
     onEditDescription,
     onEditCategory,
     onEditAmount,
+    policyID: policyIDProp,
 }: TransactionItemRowProps) {
     const styles = useThemeStyles();
     const {translate} = useLocalize();
@@ -324,7 +331,7 @@ function TransactionItemRow({
                     style={[StyleUtils.getReportTableColumnStyles(CONST.SEARCH.TABLE_COLUMNS.DATE, isDateColumnWide, false, false)]}
                 >
                     <DateCell
-                        canEdit={canInlineEdit}
+                        canEdit={canInlineEdit && !!onEditDate}
                         date={createdAt}
                         onSave={onEditDate}
                         showTooltip={shouldShowTooltip}
@@ -389,9 +396,9 @@ function TransactionItemRow({
                         transactionItem={transactionItem}
                         shouldShowTooltip={shouldShowTooltip}
                         shouldUseNarrowLayout={shouldUseNarrowLayout}
-                        canEdit={canInlineEdit && !isScanning(transactionItem)}
+                        canEdit={canInlineEdit && !!onEditCategory && !isScanning(transactionItem)}
                         onSave={onEditCategory}
-                        policyID={report?.policyID ?? transactionItem.report?.policyID}
+                        policyID={policyIDProp ?? report?.policyID ?? transactionItem.report?.policyID}
                     />
                 </View>
             ),
@@ -443,7 +450,7 @@ function TransactionItemRow({
                             merchantOrDescription={merchant}
                             shouldShowTooltip={shouldShowTooltip}
                             shouldUseNarrowLayout={false}
-                            canEdit={canInlineEdit && !isScanning(transactionItem)}
+                            canEdit={canInlineEdit && !!onEditMerchant && !isScanning(transactionItem)}
                             onSave={onEditMerchant}
                         />
                     )}
@@ -460,7 +467,7 @@ function TransactionItemRow({
                             shouldShowTooltip={shouldShowTooltip}
                             shouldUseNarrowLayout={false}
                             isDescription
-                            canEdit={canInlineEdit && !isScanning(transactionItem)}
+                            canEdit={canInlineEdit && !!onEditDescription && !isScanning(transactionItem)}
                             onSave={onEditDescription}
                         />
                     )}
@@ -526,7 +533,7 @@ function TransactionItemRow({
                     <TotalCell
                         transactionItem={transactionItem}
                         shouldShowTooltip={shouldShowTooltip}
-                        canEdit={canInlineEdit && !isScanning(transactionItem)}
+                        canEdit={canInlineEdit && !!onEditAmount && !isScanning(transactionItem)}
                         onSave={onEditAmount}
                     />
                 </View>
@@ -614,6 +621,8 @@ function TransactionItemRow({
             shouldUseNarrowLayout,
             isSelected,
             isDateColumnWide,
+            canInlineEdit,
+            onEditDate,
             createdAt,
             isSubmittedColumnWide,
             report?.submitted,
@@ -623,27 +632,26 @@ function TransactionItemRow({
             isApprovedColumnWide,
             isPostedColumnWide,
             isExportedColumnWide,
+            onEditCategory,
+            policyIDProp,
             translate,
             isReportItemChild,
             onButtonPress,
             isActionLoading,
             isDisabled,
             merchant,
+            onEditMerchant,
             description,
+            onEditDescription,
             cardName,
             isInSingleTransactionReport,
             exchangeRateMessage,
             isAmountColumnWide,
-            isTaxAmountColumnWide,
-            isLargeScreenWidth,
-            currentUserAccountID,
-            reportActions,
-            canInlineEdit,
-            onEditDate,
-            onEditMerchant,
-            onEditDescription,
-            onEditCategory,
             onEditAmount,
+            isTaxAmountColumnWide,
+            currentUserAccountID,
+            isLargeScreenWidth,
+            reportActions,
         ],
     );
     const shouldRenderChatBubbleCell = useMemo(() => {

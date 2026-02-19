@@ -43,6 +43,18 @@ function TotalCell({shouldShowTooltip, transactionItem, canEdit, onSave}: TotalC
 
     const {isEditing, localValue, setLocalValue, startEditing, save} = useInlineEditState(String(editableAmount), handleAmountSave);
 
+    const handleChangeText = useCallback(
+        (text: string) => {
+            // Allow only digits and a single decimal point
+            const cleaned = text.replaceAll(/[^0-9.]/g, '');
+            // Prevent multiple decimal points
+            const parts = cleaned.split('.');
+            const sanitized = parts.length > 1 ? `${parts.at(0)}.${parts.slice(1).join('')}` : cleaned;
+            setLocalValue(sanitized);
+        },
+        [setLocalValue],
+    );
+
     const handleBlur = useCallback(() => {
         save();
     }, [save]);
@@ -69,9 +81,12 @@ function TotalCell({shouldShowTooltip, transactionItem, canEdit, onSave}: TotalC
                     accessibilityLabel="Amount input"
                     autoFocus
                     value={localValue}
-                    onChangeText={setLocalValue}
+                    onChangeText={handleChangeText}
                     onBlur={handleBlur}
+                    onSubmitEditing={handleBlur}
                     keyboardType="decimal-pad"
+                    inputStyle={[styles.textAlignRight]}
+                    touchableInputWrapperStyle={[styles.p1, {height: '32px'}]}
                     containerStyles={[styles.flex1]}
                 />
             }

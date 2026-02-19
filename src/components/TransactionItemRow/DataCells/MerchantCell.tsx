@@ -46,6 +46,7 @@ function MerchantOrDescriptionCell({
                     value={localValue}
                     onChangeText={setLocalValue}
                     onBlur={handleBlur}
+                    onSubmitEditing={handleBlur}
                     autoFocus
                     touchableInputWrapperStyle={[styles.p1, {height: '32px'}]}
                     containerStyles={[styles.flex1]}

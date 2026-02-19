@@ -216,6 +216,9 @@ function TransactionItemRow({
     const createdAt = getTransactionCreated(transactionItem);
     const expensicons = useMemoizedLazyExpensifyIcons(['ArrowRight']);
 
+    // Inline editing is desktop-only: large screen widths correspond to desktop/tablet layouts.
+    // On narrow mobile layouts isLargeScreenWidth is false, so canInlineEdit will be false and
+    // none of the editable cells will enter edit mode.
     const canInlineEdit = isLargeScreenWidth;
 
     const isDateColumnWide = dateColumnSize === CONST.SEARCH.TABLE_COLUMN_SIZES.WIDE;

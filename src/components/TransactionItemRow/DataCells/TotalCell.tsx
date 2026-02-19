@@ -1,10 +1,11 @@
-import React, {useCallback} from 'react';
+import React, {useCallback, useEffect, useRef} from 'react';
 import {EditableCell, useInlineEditState} from '@components/Table/EditableCell';
-import TextInput from '@components/TextInput';
+import MoneyRequestAmountInput from '@components/MoneyRequestAmountInput';
+import type {BaseTextInputRef} from '@components/TextInput/BaseTextInput/types';
 import TextWithTooltip from '@components/TextWithTooltip';
 import useLocalize from '@hooks/useLocalize';
 import useThemeStyles from '@hooks/useThemeStyles';
-import {convertToDisplayString} from '@libs/CurrencyUtils';
+import {convertToDisplayString, convertToFrontendAmountAsString} from '@libs/CurrencyUtils';
 import {parseFloatAnyLocale, roundToTwoDecimalPlaces} from '@libs/NumberUtils';
 import {getTransactionDetails} from '@libs/ReportUtils';
 import {getCurrency as getTransactionCurrency, isScanning} from '@libs/TransactionUtils';
@@ -26,14 +27,13 @@ function TotalCell({shouldShowTooltip, transactionItem, canEdit, onSave}: TotalC
         amountToDisplay = translate('iou.receiptStatusTitle');
     }
 
-    // Amount is stored in cents — convert to display units for editing
-    const editableAmount = Math.abs(amount ?? 0) / 100;
+    const absoluteAmount = Math.abs(amount ?? 0);
 
     const handleAmountSave = useCallback(
-        (value: string) => {
-            const parsedValue = parseFloatAnyLocale(value);
-            if (!Number.isNaN(parsedValue)) {
-                const normalizedValue = roundToTwoDecimalPlaces(Math.max(0, parsedValue));
+        (amountString: string) => {
+            const parsedValue = parseFloatAnyLocale(amountString);
+            if (!Number.isNaN(parsedValue) && parsedValue >= 0) {
+                const normalizedValue = roundToTwoDecimalPlaces(parsedValue);
                 // Convert back to cents for the save callback
                 onSave?.(Math.round(normalizedValue * 100));
             }
@@ -41,16 +41,22 @@ function TotalCell({shouldShowTooltip, transactionItem, canEdit, onSave}: TotalC
         [onSave],
     );
 
-    const {isEditing, localValue, setLocalValue, startEditing, save} = useInlineEditState(String(editableAmount), handleAmountSave);
+    // localValue tracks the frontend-format amount string (e.g. "12.34") while editing
+    const {isEditing, setLocalValue, startEditing, save} = useInlineEditState(convertToFrontendAmountAsString(absoluteAmount, currency), handleAmountSave);
 
-    const handleChangeText = useCallback(
-        (text: string) => {
-            // Allow only digits and a single decimal point
-            const cleaned = text.replaceAll(/[^0-9.]/g, '');
-            // Prevent multiple decimal points
-            const parts = cleaned.split('.');
-            const sanitized = parts.length > 1 ? `${parts.at(0)}.${parts.slice(1).join('')}` : cleaned;
-            setLocalValue(sanitized);
+    // Ref used to programmatically focus the input when edit mode starts
+    const inputRef = useRef<BaseTextInputRef | null>(null);
+
+    useEffect(() => {
+        if (!isEditing) {
+            return;
+        }
+        inputRef.current?.focus();
+    }, [isEditing]);
+
+    const handleAmountChange = useCallback(
+        (amountString: string) => {
+            setLocalValue(amountString);
         },
         [setLocalValue],
     );
@@ -77,18 +83,26 @@ function TotalCell({shouldShowTooltip, transactionItem, canEdit, onSave}: TotalC
             isEditing={isEditing}
             onStartEditing={startEditing}
             editContent={
-                <TextInput
-                    accessibilityLabel="Amount input"
-                    autoFocus
-                    value={localValue}
-                    onChangeText={handleChangeText}
+                // MoneyRequestAmountInput handles locale-aware formatting, currency display,
+                // and validates numeric input — preferred over a raw TextInput for amounts.
+                // disableKeyboard={false} uses the native keyboard (no big number pad) on desktop.
+                <MoneyRequestAmountInput
+                    ref={inputRef}
+                    autoGrow={false}
+                    amount={absoluteAmount}
+                    currency={currency}
+                    disableKeyboard={false}
+                    isCurrencyPressable={false}
+                    hideCurrencySymbol
+                    hideFocusedState
+                    formatAmountOnBlur
+                    shouldShowBigNumberPad={false}
+                    shouldWrapInputInContainer={false}
+                    onAmountChange={handleAmountChange}
                     onBlur={handleBlur}
-                    onSubmitEditing={handleBlur}
-                    keyboardType="decimal-pad"
                     inputStyle={[styles.textAlignRight]}
                     touchableInputWrapperStyle={[styles.ph2, {height: 32}]}
-                    textInputContainerStyles={[{borderWidth: 0, padding: 0, paddingBottom: 0}]}
-                    containerStyles={[styles.flex1]}
+                    containerStyle={[styles.flex1]}
                 />
             }
         >

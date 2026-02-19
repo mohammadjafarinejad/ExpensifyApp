@@ -203,6 +203,11 @@ function editTransactionDateOnSearch(hash: number, transactionID: string, transa
 
 /** Updates the merchant of an expense from the Search results table. */
 function editTransactionMerchantOnSearch(hash: number, transactionID: string, transactionThreadReportID: string | undefined, newMerchant: string) {
+    // Merchant must be a non-empty string. An empty merchant is not a valid
+    // state and the IOU action would save it as a blank row label.
+    if (!newMerchant.trim()) {
+        return;
+    }
     const p = getParamsForTransaction(transactionID, transactionThreadReportID);
     optimisticallyUpdateSnapshotTransaction(hash, transactionID, {modifiedMerchant: newMerchant});
     updateMoneyRequestMerchant({
@@ -290,6 +295,8 @@ function editTransactionAmountOnSearch(hash: number, transactionID: string, tran
     });
 }
 
+// Only editable on expense-type tabs that are not in a terminal state.
+// APPROVED / DONE / PAID are omitted; canEditFieldOfMoneyRequest also blocks them.
 const EDITABLE_STATUSES = new Set<string>([
     CONST.SEARCH.STATUS.EXPENSE.ALL,
     CONST.SEARCH.STATUS.EXPENSE.UNREPORTED,
@@ -297,19 +304,23 @@ const EDITABLE_STATUSES = new Set<string>([
     CONST.SEARCH.STATUS.EXPENSE.OUTSTANDING,
 ]);
 
-/**
- * Returns per-field edit permissions for a transaction in the Search table.
- * Computes the tab-level gate from queryJSON and derives transaction/report/policy
- * from module-level subscriptions — callers only pass minimal context.
- */
+/** Returns per-field edit permissions for a transaction in the Search table. */
 function getSearchTransactionEditPermissions(
     transactionID: string,
     parentReportAction: OnyxInputOrEntry<ReportAction> | undefined,
     queryJSON: SearchQueryJSON | undefined,
 ): {canEditDate: boolean; canEditMerchant: boolean; canEditDescription: boolean; canEditCategory: boolean; canEditAmount: boolean} {
+    const noEdit = {canEditDate: false, canEditMerchant: false, canEditDescription: false, canEditCategory: false, canEditAmount: false};
+
     const isEditableTab = queryJSON?.type === CONST.SEARCH.DATA_TYPES.EXPENSE && EDITABLE_STATUSES.has((queryJSON?.status as string) ?? '');
     if (!isEditableTab) {
-        return {canEditDate: false, canEditMerchant: false, canEditDescription: false, canEditCategory: false, canEditAmount: false};
+        return noEdit;
+    }
+
+    // parentReportAction may be undefined while the Onyx subscription is loading;
+    // return noEdit until it arrives so permissions aren't prematurely granted.
+    if (!parentReportAction) {
+        return noEdit;
     }
 
     const transaction = allTransactions[`${ONYXKEYS.COLLECTION.TRANSACTION}${transactionID}`];
@@ -318,6 +329,7 @@ function getSearchTransactionEditPermissions(
     const policyID = parentReport?.policyID ?? '';
     const parentPolicy = allPolicies?.[`${ONYXKEYS.COLLECTION.POLICY}${policyID}`] ?? undefined;
 
+    // Changing a split-parent amount would leave child splits inconsistent.
     const isSplitTransaction = !!transaction?.comment?.originalTransactionID || !!(transaction?.comment?.splits && transaction.comment.splits.length > 0);
 
     return {

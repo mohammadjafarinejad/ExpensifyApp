@@ -86,7 +86,7 @@ function TotalCell({shouldShowTooltip, transactionItem, canEdit, onSave}: TotalC
                     onSubmitEditing={handleBlur}
                     keyboardType="decimal-pad"
                     inputStyle={[styles.textAlignRight]}
-                    touchableInputWrapperStyle={[styles.p1, {height: '32px'}]}
+                    touchableInputWrapperStyle={[styles.ph2, {height: '32px'}]}
                     containerStyles={[styles.flex1]}
                 />
             }
